@@ -75,25 +75,13 @@ jobs:
       - name: Build Maven Project
         run: ssh $USER@$HOST "cd $REPO_DIR && mvn package -DskipTests" || { echo "Failed to build Maven project"; exit 1; }
       
-# ----------------------------------------------------------------------
-# 3. Maven 테스트 (최종 수정)
-# ----------------------------------------------------------------------
+      # 테스트 실행은 개발 필요성에 따라 제외할 수 있습니다.
       - name: Run Tests
-        env: 
-          # GitHub Secrets의 값을 Runner 환경 변수에 로드
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: |
-          # 🌟 [최종 수정] SSH 접속 시, Maven 명령어에 -D 옵션으로 값을 직접 전달
-          # 주의: 여기서 전달하는 $DB_URL 등은 Runner의 환경 변수입니다.
-          ssh $USER@$HOST "cd $REPO_DIR && \
-                          mvn test \
-                          -Dspring.datasource.url=$DB_URL \
-                          -Dspring.datasource.username=$DB_USERNAME \
-                          -Dspring.datasource.password=$DB_PASSWORD" || {
-            echo "Tests failed"; exit 1;
-          }
+        run: ssh $USER@$HOST "cd $REPO_DIR && mvn test" || { echo "Tests failed"; exit 1; }
+
+      # ----------------------------------------------------------------------
+      # 4. 애플리케이션 배포 및 시작
+      # ----------------------------------------------------------------------
       - name: Deploy Application
         run: |
           ssh $USER@$HOST << EOF
