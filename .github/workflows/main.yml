@@ -8,13 +8,11 @@ on:
 
 jobs:
   build-and-deploy:
-    # 🌟 OCI Ubuntu 서버를 가정하고 Runner는 최신 LTS 사용
     runs-on: ubuntu-latest 
 
     environment: OCI_PROD # 🌟 환경 이름 변경
 
     env:
-      # 🌟 비밀 정보 이름 변경 (EC2 -> OCI)
       HOST: ${{ secrets.OCI_HOST }}
       USER: ${{ secrets.OCI_USER }}
       REPO_DIR: /home/ubuntu/korea-sky-planner-backend # 🌟 프로젝트 경로 정의
@@ -71,19 +69,10 @@ jobs:
               }
             fi
           EOF
-
-      # ----------------------------------------------------------------------
-      # 3. Maven 빌드 (서버에서 실행)
-      # ----------------------------------------------------------------------
-      # ⚠️ 오라클 VM 메모리가 부족하면 이 단계가 느려지거나 실패할 수 있습니다.
-      #    (Frontend처럼 Runner에서 빌드 후 JAR만 전송하는 방법이 더 안정적입니다.)
-
       - name: Clean Maven Project
         run: ssh $USER@$HOST "cd $REPO_DIR && mvn clean" || { echo "Failed to clean Maven project"; exit 1; }
 
       - name: Build Maven Project
-        # 🌟 메모리 부족을 대비하여 Java 힙 크기 제한 옵션 추가 (선택 사항)
-        # run: ssh $USER@$HOST "cd $REPO_DIR && mvn package -DskipTests -Dmaven.repo.local=/tmp/m2-repo -DskipTests -Dmaven.jvmargs='-Xmx1024m'" || { echo "Failed to build Maven project"; exit 1; }
         run: ssh $USER@$HOST "cd $REPO_DIR && mvn package -DskipTests" || { echo "Failed to build Maven project"; exit 1; }
       
       # 테스트 실행은 개발 필요성에 따라 제외할 수 있습니다.
