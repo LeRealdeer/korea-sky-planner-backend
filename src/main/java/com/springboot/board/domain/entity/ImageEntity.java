@@ -1,8 +1,8 @@
-// src/main/java/com/springboot/board/domain/entity/ImageEntity.java
 package com.springboot.board.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,25 +11,42 @@ import java.time.LocalDateTime;
 @Table(name = "soul_image")
 public class ImageEntity {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-@ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "soul_id")
-private SoulEntity soul;
+    // 시즌 영혼의 기본 이미지
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "soul_id")
+    private SoulEntity soul;
 
-    /** REPRESENTATIVE, LOCATION, WEARING_SHOT, GESTURE 등 */
+    // 특정 유랑 방문의 이미지
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "traveling_visit_id")
+    private TravelingVisitEntity travelingVisit;
+
+    /**
+     * REPRESENTATIVE - 대표 이미지
+     * LOCATION - 위치 이미지
+     * WEARING_SHOT - 착용샷
+     * NODE_TABLE - 노드표
+     */
     @Column(length = 30, nullable = false)
     private String imageType;
 
-    /** 서버에 저장된 파일명(UUID.ext) */
     @Column(nullable = false, unique = true)
-    private String fileName;
+    private String fileName; // UUID.ext
 
-    /** 클라이언트가 보는 URL */
     @Column(nullable = false, length = 512)
     private String url;
 
-    private long fileSize;            // 바이트
-    private LocalDateTime uploadedAt; // 업로드 시각
+    private Long fileSize;
+    private LocalDateTime uploadedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (uploadedAt == null) {
+            uploadedAt = LocalDateTime.now();
+        }
+    }
 }
