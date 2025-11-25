@@ -8,27 +8,22 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest 
-
-    environment: OCI_PROD # 🌟 환경 이름 변경
+    runs-on: ubuntu-latest
+    environment: OCI_PROD
 
     env:
       HOST: ${{ secrets.OCI_HOST }}
       USER: ${{ secrets.OCI_USER }}
-      REPO_DIR: /home/ubuntu/korea-sky-planner-backend # 🌟 프로젝트 경로 정의
-      JAR_NAME: Board-0.0.1-SNAPSHOT.jar # 🌟 실행할 JAR 파일 이름 정의
+      REPO_DIR: /home/ubuntu/korea-sky-planner-backend
+      JAR_NAME: Board-0.0.1-SNAPSHOT.jar
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # ----------------------------------------------------------------------
-      # 1. SSH 키 설정
-      # ----------------------------------------------------------------------
       - name: Configure SSH Key
         env:
-          # 🌟 비밀 정보 이름 변경 (EC2 -> OCI)
-          SSH_PRIVATE_KEY: ${{ secrets.OCI_KEY }} 
+          SSH_PRIVATE_KEY: ${{ secrets.OCI_KEY }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
@@ -38,23 +33,16 @@ jobs:
             echo "Error: HOST environment variable is not set"; exit 1;
           fi
           
-          # HOST 키를 known_hosts에 추가 (SSH 연결 시 필수)
-          echo "Adding host to known_hosts"
           ssh-keyscan "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || {
             echo "Failed to add host to known_hosts"; exit 1;
           }
 
-      # ----------------------------------------------------------------------
-      # 2. 서버에 프로젝트 복제/업데이트
-      # ----------------------------------------------------------------------
       - name: Update Source Code on OCI Server
         run: |
           ssh $USER@$HOST << EOF
             set -e
-            
-            # 🌟 프로젝트 디렉토리가 없으면 복제, 있으면 풀(Pull)
             if [ ! -d $REPO_DIR ]; then
-              echo "Repository not found. Creating directory and cloning..."
+              echo "Repository not found. Cloning..."
               mkdir -p $REPO_DIR
               git clone https://github.com/LeRealdeer/korea-sky-planner-backend.git $REPO_DIR || {
                 echo "Failed to clone repository"; exit 1;
@@ -62,58 +50,56 @@ jobs:
             else
               echo "Repository exists. Pulling latest changes..."
               cd $REPO_DIR
-              # 변경 사항이 없을 때 에러 방지를 위해 git reset --hard 추가
               git reset --hard HEAD
               git pull || {
                 echo "Failed to pull latest changes"; exit 1;
               }
             fi
           EOF
+
       - name: Clean Maven Project
         run: ssh $USER@$HOST "cd $REPO_DIR && mvn clean" || { echo "Failed to clean Maven project"; exit 1; }
 
       - name: Build Maven Project
         run: ssh $USER@$HOST "cd $REPO_DIR && mvn package -DskipTests" || { echo "Failed to build Maven project"; exit 1; }
-      
-      # 테스트 실행은 개발 필요성에 따라 제외할 수 있습니다.
-      - name: Run Tests
-        run: ssh $USER@$HOST "cd $REPO_DIR && mvn test" || { echo "Tests failed"; exit 1; }
 
-      # ----------------------------------------------------------------------
-      # 4. 애플리케이션 배포 및 시작
-      # ----------------------------------------------------------------------
+      - name: Run Tests
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          ssh $USER@$HOST "cd $REPO_DIR && mvn test \
+            -Dspring.datasource.url=$DB_URL \
+            -Dspring.datasource.username=$DB_USERNAME \
+            -Dspring.datasource.password=$DB_PASSWORD" || {
+            echo "Tests failed"; exit 1;
+          }
+
       - name: Deploy Application
         run: |
           ssh $USER@$HOST << EOF
             set -e
             
-            # 현재 실행 중인 애플리케이션 종료
             echo "Checking for existing application..."
-            if pid=\$(pgrep -f "\$JAR_NAME"); then
+            if pid=\$(pgrep -f -u $USER $JAR_NAME); then
               echo "Stopping existing application (PID: \$pid)..."
-              # Spring Boot 애플리케이션은 kill -15 (SIGTERM)으로 종료하는 것이 더 안전
               sudo kill -15 \$pid 
-              # kill이 실패하더라도 CI/CD가 멈추지 않도록 || true 추가
               sleep 10 
-              # 10초 후에도 종료되지 않았다면 강제 종료
-              if pgrep -f "\$JAR_NAME"; then
-                  kill -9 \$pid || true
+              if pgrep -f -u $USER $JAR_NAME; then
+                  sudo kill -9 \$pid || true
               fi
             else
               echo "No running application found."
             fi
 
-            # 새 애플리케이션 실행
             echo "Starting new application..."
             cd $REPO_DIR
-            # nohup으로 실행하여 세션이 끊겨도 유지되도록 함
             nohup java -jar target/\$JAR_NAME > app.log 2>&1 &
             
-            # 프로세스 시작 확인
             echo "Waiting for application to start..."
-            sleep 15 # Spring Boot는 시작 시간이 길 수 있으므로 15초 대기
+            sleep 15
             
-            # 로그 확인 (마지막 10줄만)
             echo "Recent application logs:"
             tail -n 10 app.log || {
               echo "Failed to read application logs"; exit 1;
