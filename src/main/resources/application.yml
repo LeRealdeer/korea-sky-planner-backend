@@ -1,0 +1,72 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      
+  application:
+    name: Board
+
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        '[show_sql]': true
+        '[format_sql]': true
+        jdbc:
+          time_zone: Asia/Seoul
+    hibernate:
+      ddl-auto: update
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false  # ISO-8601 형식으로 날짜 출력
+      fail-on-empty-beans: false       # 빈 Bean 직렬화 오류 방지
+    deserialization:
+      fail-on-unknown-properties: false # 알 수 없는 프로퍼티 무시
+    default-property-inclusion: non-null # null 값 무시
+    date-format: yyyy-MM-dd HH:mm:ss    # 날짜 형식
+    time-zone: Asia/Seoul               # 타임존 설정
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# Swagger 설정 수정
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+  api-docs:
+    path: /v3/api-docs
+  packages-to-scan:
+    - com.springboot.board.api.v1.controller
+    - com.springboot.board.web.controller
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  base-url: https://korea-sky-planner.com
+  upload-dir: uploads

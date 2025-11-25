@@ -1,0 +1,89 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+
+# Default ignored files
+/shelf/
+/workspace.xml
+
+# Editor-based HTTP Client requests
+/httpRequests/
+
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+
+# Environment variables
+.env
+
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Maven 관련 파일 및 디렉토리
+target/
+*.log
+*.jar
+*.war
+*.ear
+*.class
+*.iml
+.mvn/
+!**/src/main/**
+!**/src/test/**
+
+# Ignore cursor rules file
+.cursorrules
+
+# Ignore planning file
+planning.txt
+
+# Ignore directory
+tmp/
+tmp*/
+
+# Eclipse 관련 파일 
+.classpath
+.project
+.settings/
+bin/
+target/
+
+# IntelliJ
+.idea/
+.idea
+*.iml
+*.iws
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### VS Code ###
+.vscode/
+
