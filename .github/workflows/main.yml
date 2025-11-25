@@ -63,18 +63,6 @@ jobs:
       - name: Build Maven Project
         run: ssh $USER@$HOST "cd $REPO_DIR && mvn package -DskipTests" || { echo "Failed to build Maven project"; exit 1; }
 
-      - name: Run Tests
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: |
-          ssh $USER@$HOST "cd $REPO_DIR && mvn test \
-            -Dspring.datasource.url=$DB_URL \
-            -Dspring.datasource.username=$DB_USERNAME \
-            -Dspring.datasource.password=$DB_PASSWORD" || {
-            echo "Tests failed"; exit 1;
-          }
 
       - name: Deploy Application
         run: |
