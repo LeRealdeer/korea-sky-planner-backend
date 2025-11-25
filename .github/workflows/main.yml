@@ -92,7 +92,7 @@ jobs:
             if pid=\$(pgrep -f "\$JAR_NAME"); then
               echo "Stopping existing application (PID: \$pid)..."
               # Spring Boot 애플리케이션은 kill -15 (SIGTERM)으로 종료하는 것이 더 안전
-              kill -15 \$pid 
+              sudo kill -15 \$pid 
               # kill이 실패하더라도 CI/CD가 멈추지 않도록 || true 추가
               sleep 10 
               # 10초 후에도 종료되지 않았다면 강제 종료
