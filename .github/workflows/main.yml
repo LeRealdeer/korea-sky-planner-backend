@@ -89,7 +89,6 @@ jobs:
             
             # 현재 실행 중인 애플리케이션 종료
             echo "Checking for existing application..."
-            # 🌟 JAR_NAME 변수를 사용하여 프로세스 찾기
             if pid=\$(pgrep -f "\$JAR_NAME"); then
               echo "Stopping existing application (PID: \$pid)..."
               # Spring Boot 애플리케이션은 kill -15 (SIGTERM)으로 종료하는 것이 더 안전
