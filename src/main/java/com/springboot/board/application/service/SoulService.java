@@ -8,6 +8,7 @@ import com.springboot.board.common.exception.DataNotFoundException;
 import com.springboot.board.domain.entity.ImageEntity;
 import com.springboot.board.domain.entity.SeasonEntity;
 import com.springboot.board.domain.entity.SoulEntity;
+import com.springboot.board.domain.entity.TravelingVisitEntity;
 import com.springboot.board.domain.repository.SeasonRepository;
 import com.springboot.board.domain.repository.SoulRepository;
 import lombok.RequiredArgsConstructor;
@@ -179,50 +180,64 @@ public SoulResponse createSoul(SoulCreateRequest req) {
 
 /**
  * 가장 오랫동안 안 온 영혼들 조회 (페이징)
- * 프론트에서 daysSinceLastVisit 계산하므로 백엔드는 정렬만 담당
+ * - 유랑 이력(visitNumber > 0)이 있는 영혼만 표시
+ * - 각 영혼 이름별로 가장 최근 유랑 방문 기록 기준
+ * - 기간 제한 없음 (몇 년이 지났든 모두 표시)
  */
 public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
-    // 1. 모든 영혼 조회
-    List<SoulEntity> allSouls = soulRepository.findAll();
+    // 1. 유랑 온 적 있는 영혼만 조회
+    List<SoulEntity> allSouls = soulRepository.findAllWithTravelingVisits();
     
-    // 2. 이름별로 그룹화하여 가장 최근 영혼만 선택
-    Map<String, SoulEntity> latestByName = allSouls.stream()
-        .collect(Collectors.toMap(
-            SoulEntity::getName,
-            soul -> soul,
-            (existing, replacement) -> {
-                // 동일 이름일 경우 더 최근 startDate를 가진 것 선택
-                if (replacement.getStartDate().isAfter(existing.getStartDate())) {
-                    return replacement;
-                } else if (replacement.getStartDate().equals(existing.getStartDate())) {
-                    // 시작일이 같으면 endDate가 더 최근인 것 선택
-                    return replacement.getEndDate().isAfter(existing.getEndDate()) ? replacement : existing;
-                }
-                return existing;
-            }
-        ));
+    if (allSouls.isEmpty()) {
+        return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), 0);
+    }
     
-    // 3. lastVisitDate 기준으로 정렬 (오래된 순)
-    List<Map<String, Object>> allResults = latestByName.values().stream()
-        .map(soul -> {
-            LocalDate lastVisitDate = soul.getEndDate();
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("soul", mapper.toResponse(soul));
-            result.put("lastVisitDate", lastVisitDate);
-            
-            return result;
-        })
-        // 가장 오래 안 온 순서로 정렬 (lastVisitDate 오름차순)
-        .sorted((a, b) -> {
-            LocalDate dateA = (LocalDate) a.get("lastVisitDate");
-            LocalDate dateB = (LocalDate) b.get("lastVisitDate");
-            return dateA.compareTo(dateB);
-        })
-        .collect(Collectors.toList());
+    // 2. 이름별로 그룹화
+    Map<String, List<SoulEntity>> groupedByName = allSouls.stream()
+        .collect(Collectors.groupingBy(SoulEntity::getName));
     
-    // 4. 페이징 처리
-    int totalElements = allResults.size();
+    // 3. 각 그룹에서 가장 최근 유랑 방문 날짜 계산
+    List<Map<String, Object>> results = new ArrayList<>();
+    
+    for (Map.Entry<String, List<SoulEntity>> entry : groupedByName.entrySet()) {
+        List<SoulEntity> souls = entry.getValue();
+        
+        // 모든 유랑 이력 중 가장 최근 endDate 찾기 (visitNumber > 0만)
+        Optional<LocalDate> lastVisitDateOpt = souls.stream()
+            .flatMap(soul -> soul.getTravelingVisits().stream())
+            .filter(visit -> visit.getVisitNumber() > 0) // visitNumber 0 제외 (시즌 당시)
+            .map(TravelingVisitEntity::getEndDate)
+            .max(LocalDate::compareTo);
+        
+        if (!lastVisitDateOpt.isPresent()) {
+            continue; // 유랑 이력 없으면 스킵
+        }
+        
+        LocalDate lastVisitDate = lastVisitDateOpt.get();
+        
+        // 해당 lastVisitDate를 가진 영혼 찾기
+        SoulEntity representativeSoul = souls.stream()
+            .filter(soul -> soul.getTravelingVisits().stream()
+                .anyMatch(visit -> visit.getEndDate().equals(lastVisitDate)))
+            .findFirst()
+            .orElse(souls.get(0));
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("soul", mapper.toResponse(representativeSoul));
+        result.put("lastVisitDate", lastVisitDate);
+        
+        results.add(result);
+    }
+    
+    // 4. lastVisitDate 기준으로 정렬 (오래된 순)
+    results.sort((a, b) -> {
+        LocalDate dateA = (LocalDate) a.get("lastVisitDate");
+        LocalDate dateB = (LocalDate) b.get("lastVisitDate");
+        return dateA.compareTo(dateB);
+    });
+    
+    // 5. 페이징 처리
+    int totalElements = results.size();
     int startIndex = page * size;
     
     if (startIndex >= totalElements) {
@@ -230,12 +245,11 @@ public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
     }
     
     int endIndex = Math.min(startIndex + size, totalElements);
-    List<Map<String, Object>> pagedResults = allResults.subList(startIndex, endIndex);
+    List<Map<String, Object>> pagedResults = results.subList(startIndex, endIndex);
     
     Pageable pageable = PageRequest.of(page, size);
     return new PageImpl<>(pagedResults, pageable, totalElements);
 }
-
     /**
      * 🎯 TODO: TravelingVisit을 활용한 정확한 오래된 유랑 계산 (미래 구현)
      * 
