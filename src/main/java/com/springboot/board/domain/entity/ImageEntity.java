@@ -15,15 +15,10 @@ public class ImageEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 시즌 영혼의 기본 이미지
+    // 시즌 영혼의 이미지만 관리
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "soul_id")
+    @JoinColumn(name = "soul_id", nullable = false)
     private SoulEntity soul;
-
-    // 특정 유랑 방문의 이미지
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "traveling_visit_id")
-    private TravelingVisitEntity travelingVisit;
 
     /**
      * REPRESENTATIVE - 대표 이미지

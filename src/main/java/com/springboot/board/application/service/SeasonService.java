@@ -1,6 +1,7 @@
 package com.springboot.board.application.service;
 
 import com.springboot.board.api.v1.dto.request.SeasonCreateRequest;
+import com.springboot.board.api.v1.dto.request.SeasonUpdateRequest;
 import com.springboot.board.api.v1.dto.response.SeasonResponse;
 import com.springboot.board.common.exception.DataNotFoundException;
 import com.springboot.board.domain.entity.SeasonEntity;
@@ -27,7 +28,7 @@ public class SeasonService {
 
     public List<SeasonResponse> getAllSeasons() {
         List<SeasonEntity> seasons = seasonRepository.findAllByOrderByOrderNumAsc();
-        
+
         // 영혼 개수 조회
         List<Map<String, Object>> soulCounts = soulRepository.countBySeasonGrouped();
         Map<Integer, Long> soulCountMap = new HashMap<>();
@@ -43,10 +44,10 @@ public class SeasonService {
     public SeasonResponse getSeasonById(Integer id) {
         SeasonEntity season = seasonRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("시즌을 찾을 수 없습니다. id=" + id));
-        
+
         int spiritCount = soulRepository.findBySeasonId(id).size();
         int iapCount = iapItemRepository.findBySeasonId(id).size();
-        
+
         return SeasonResponse.builder()
                 .id(season.getId())
                 .name(season.getName())
@@ -79,7 +80,7 @@ public class SeasonService {
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .color(request.getColor())
-                .isCollaboration(request.isCollaboration())
+                .isCollaboration(request.getIsCollaboration() != null ? request.getIsCollaboration() : false) // 수정!
                 .build();
 
         SeasonEntity saved = seasonRepository.save(entity);
@@ -106,5 +107,40 @@ public class SeasonService {
                 .isCollaboration(entity.isCollaboration())
                 .totalSpirits(soulCountMap.getOrDefault(entity.getId(), 0L).intValue())
                 .build();
+    }
+
+    @Transactional
+    public SeasonResponse updateSeason(Integer id, SeasonUpdateRequest request) {
+        SeasonEntity season = seasonRepository.findById(id)
+                .orElseThrow(() -> new DataNotFoundException("시즌을 찾을 수 없습니다. id=" + id));
+
+        // orderNum 중복 체크 (자기 자신은 제외)
+        if (request.getOrderNum() != null && !request.getOrderNum().equals(season.getOrderNum())) {
+            if (seasonRepository.existsByOrderNum(request.getOrderNum())) {
+                throw new IllegalArgumentException("이미 존재하는 시즌 순서입니다. orderNum=" + request.getOrderNum());
+            }
+        }
+
+        // 필드 업데이트 (null이 아닌 것만)
+        if (request.getName() != null && !request.getName().isBlank()) {
+            season.setName(request.getName());
+        }
+        if (request.getOrderNum() != null) {
+            season.setOrderNum(request.getOrderNum());
+        }
+        if (request.getStartDate() != null) {
+            season.setStartDate(request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            season.setEndDate(request.getEndDate());
+        }
+        if (request.getColor() != null) {
+            season.setColor(request.getColor());
+        }
+        if (request.getIsCollaboration() != null) {
+            season.setCollaboration(request.getIsCollaboration());
+        }
+
+        return toResponse(season, new HashMap<>());
     }
 }

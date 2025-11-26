@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "traveling_visit")
@@ -33,11 +31,4 @@ public class TravelingVisitEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean isWarbandVisit = false; // 유랑단 여부
-
-    @Column(length = 1000)
-    private String notes; // 관리자 메모
-
-    @OneToMany(mappedBy = "travelingVisit", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<ImageEntity> visitImages = new ArrayList<>();
 }

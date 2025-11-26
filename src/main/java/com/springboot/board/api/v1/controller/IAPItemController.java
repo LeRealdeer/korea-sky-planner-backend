@@ -1,6 +1,7 @@
 package com.springboot.board.api.v1.controller;
 
 import com.springboot.board.api.v1.dto.request.IAPItemCreateRequest;
+import com.springboot.board.api.v1.dto.request.IAPItemUpdateRequest;
 import com.springboot.board.api.v1.dto.response.IAPItemResponse;
 import com.springboot.board.application.service.IAPItemService;
 import com.springboot.board.common.response.ApiResponse;
@@ -57,5 +58,13 @@ public class IAPItemController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteItem(@PathVariable Long id) {
         iapItemService.deleteItem(id);
+    }
+
+    @Operation(summary = "IAP 아이템 수정")
+    @PutMapping("/{id}")
+    public ApiResponse<IAPItemResponse> updateItem(
+            @PathVariable Long id,
+            @Valid @RequestBody IAPItemUpdateRequest request) {
+        return ApiResponse.success(iapItemService.updateItem(id, request));
     }
 }

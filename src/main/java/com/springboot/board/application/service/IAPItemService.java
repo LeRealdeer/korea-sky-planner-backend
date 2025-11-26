@@ -1,6 +1,7 @@
 package com.springboot.board.application.service;
 
 import com.springboot.board.api.v1.dto.request.IAPItemCreateRequest;
+import com.springboot.board.api.v1.dto.request.IAPItemUpdateRequest;
 import com.springboot.board.api.v1.dto.response.IAPItemResponse;
 import com.springboot.board.common.exception.DataNotFoundException;
 import com.springboot.board.domain.entity.IAPItemEntity;
@@ -85,5 +86,40 @@ public class IAPItemService {
                 .keywords(entity.getKeywords())
                 .imageUrl(entity.getImageUrl())
                 .build();
+    }
+
+    @Transactional
+    public IAPItemResponse updateItem(Long id, IAPItemUpdateRequest request) {
+        IAPItemEntity item = iapItemRepository.findById(id)
+                .orElseThrow(() -> new DataNotFoundException("IAP 아이템을 찾을 수 없습니다. id=" + id));
+
+        // Season 변경
+        if (request.getSeasonId() != null && !request.getSeasonId().equals(item.getSeason().getId())) {
+            SeasonEntity season = seasonRepository.findById(request.getSeasonId())
+                    .orElseThrow(() -> new DataNotFoundException("시즌을 찾을 수 없습니다. id=" + request.getSeasonId()));
+            item.setSeason(season);
+        }
+
+        // 필드 업데이트
+        if (request.getName() != null && !request.getName().isBlank()) {
+            item.setName(request.getName());
+        }
+        if (request.getCategory() != null) {
+            item.setCategory(request.getCategory());
+        }
+        if (request.getPurchaseType() != null && !request.getPurchaseType().isBlank()) {
+            item.setPurchaseType(request.getPurchaseType());
+        }
+        if (request.getPriceInfo() != null) {
+            item.setPriceInfo(request.getPriceInfo());
+        }
+        if (request.getKeywords() != null) {
+            item.setKeywords(request.getKeywords());
+        }
+        if (request.getImageUrl() != null) {
+            item.setImageUrl(request.getImageUrl());
+        }
+
+        return toResponse(item);
     }
 }

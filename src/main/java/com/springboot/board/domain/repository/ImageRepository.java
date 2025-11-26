@@ -21,10 +21,6 @@ public interface ImageRepository extends JpaRepository<ImageEntity, Long> {
     List<ImageEntity> findAllByImageTypeOrderByIdDesc(String imageType);
     List<ImageEntity> findAllBySoulIdAndImageTypeOrderByIdDesc(Integer soulId, String imageType);
 
-    // 유랑 방문 관련
-    List<ImageEntity> findByTravelingVisitId(Long travelingVisitId);
-    List<ImageEntity> findByTravelingVisitIdAndImageType(Long travelingVisitId, String imageType);
-
     long countBySoulIdAndImageType(Integer soulId, String imageType);
     long countBySoulId(Integer soulId);
     long countByImageType(String imageType);

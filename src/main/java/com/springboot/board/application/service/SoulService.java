@@ -32,28 +32,23 @@ public class SoulService {
     /**
      * 영혼 생성
      */
-    @Transactional
-    public SoulResponse createSoul(SoulCreateRequest req) {
-        // 1. 시즌 조회
-        SeasonEntity season = seasonRepository.findById(req.getSeasonId())
-                .orElseThrow(() -> new DataNotFoundException("시즌을 찾을 수 없습니다. id=" + req.getSeasonId()));
+/**
+ * 영혼 생성
+ */
+@Transactional
+public SoulResponse createSoul(SoulCreateRequest req) {
+    // 1. 시즌 조회
+    SeasonEntity season = seasonRepository.findById(req.getSeasonId())
+            .orElseThrow(() -> new DataNotFoundException("시즌을 찾을 수 없습니다. id=" + req.getSeasonId()));
 
-        // 2. Entity 변환
-        SoulEntity entity = mapper.toEntity(req);
-        entity.setSeason(season);
+    // 2. Entity 변환
+    SoulEntity entity = mapper.toEntity(req);
+    entity.setSeason(season);
 
-        // 3. 이미지 연관관계 설정 (있는 경우)
-        if (req.getImages() != null) {
-            for (ImageEntity img : req.getImages()) {
-                img.setSoul(entity);
-            }
-            entity.setImages(req.getImages());
-        }
-
-        // 4. 저장
-        SoulEntity saved = soulRepository.save(entity);
-        return mapper.toResponse(saved);
-    }
+    // 3. 저장 (이미지는 별도의 ImageController를 통해 업로드)
+    SoulEntity saved = soulRepository.save(entity);
+    return mapper.toResponse(saved);
+}
 
     /**
      * 영혼 수정
@@ -182,76 +177,64 @@ public class SoulService {
         return result;
     }
 
-    /**
-     * 가장 오랫동안 안 온 영혼들 조회 (페이징)
-     * 
-     * ⚠️ 주의: 이 메소드는 기존 로직을 유지하되,
-     * 나중에 TravelingVisit을 활용한 정확한 계산으로 교체 필요!
-     */
-    public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
-        // 1. 모든 영혼 조회
-        List<SoulEntity> allSouls = soulRepository.findAll();
-        
-        // 2. 이름별로 그룹화하여 가장 최근 영혼만 선택
-        Map<String, SoulEntity> latestByName = allSouls.stream()
-            .collect(Collectors.toMap(
-                SoulEntity::getName,
-                soul -> soul,
-                (existing, replacement) -> {
-                    // 동일 이름일 경우 더 최근 startDate를 가진 것 선택
-                    if (replacement.getStartDate().isAfter(existing.getStartDate())) {
-                        return replacement;
-                    } else if (replacement.getStartDate().equals(existing.getStartDate())) {
-                        // 시작일이 같으면 endDate가 더 최근인 것 선택
-                        return replacement.getEndDate().isAfter(existing.getEndDate()) ? replacement : existing;
-                    }
-                    return existing;
+/**
+ * 가장 오랫동안 안 온 영혼들 조회 (페이징)
+ * 프론트에서 daysSinceLastVisit 계산하므로 백엔드는 정렬만 담당
+ */
+public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
+    // 1. 모든 영혼 조회
+    List<SoulEntity> allSouls = soulRepository.findAll();
+    
+    // 2. 이름별로 그룹화하여 가장 최근 영혼만 선택
+    Map<String, SoulEntity> latestByName = allSouls.stream()
+        .collect(Collectors.toMap(
+            SoulEntity::getName,
+            soul -> soul,
+            (existing, replacement) -> {
+                // 동일 이름일 경우 더 최근 startDate를 가진 것 선택
+                if (replacement.getStartDate().isAfter(existing.getStartDate())) {
+                    return replacement;
+                } else if (replacement.getStartDate().equals(existing.getStartDate())) {
+                    // 시작일이 같으면 endDate가 더 최근인 것 선택
+                    return replacement.getEndDate().isAfter(existing.getEndDate()) ? replacement : existing;
                 }
-            ));
-        
-        // 3. 현재 날짜 기준으로 안 온 기간 계산 및 정렬
-        LocalDate today = LocalDate.now();
-        
-        List<Map<String, Object>> allResults = latestByName.values().stream()
-            .map(soul -> {
-                // 마지막으로 온 날짜는 endDate
-                LocalDate lastVisitDate = soul.getEndDate();
-                long daysSinceLastVisit = ChronoUnit.DAYS.between(lastVisitDate, today);
-                
-                // 음수면 아직 진행 중이거나 미래 일정
-                if (daysSinceLastVisit < 0) {
-                    daysSinceLastVisit = 0;
-                }
-                
-                Map<String, Object> result = new HashMap<>();
-                result.put("soul", mapper.toResponse(soul));
-                result.put("daysSinceLastVisit", daysSinceLastVisit);
-                result.put("lastVisitDate", lastVisitDate);
-                result.put("isActive", daysSinceLastVisit == 0); // 현재 활성 상태인지
-                
-                return result;
-            })
-            // 안 온 기간 내림차순 정렬 (가장 오래 안 온 순서)
-            .sorted((a, b) -> Long.compare(
-                (Long) b.get("daysSinceLastVisit"), 
-                (Long) a.get("daysSinceLastVisit")
-            ))
-            .collect(Collectors.toList());
-        
-        // 4. 페이징 처리
-        int totalElements = allResults.size();
-        int startIndex = page * size;
-        
-        if (startIndex >= totalElements) {
-            return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), totalElements);
-        }
-        
-        int endIndex = Math.min(startIndex + size, totalElements);
-        List<Map<String, Object>> pagedResults = allResults.subList(startIndex, endIndex);
-        
-        Pageable pageable = PageRequest.of(page, size);
-        return new PageImpl<>(pagedResults, pageable, totalElements);
+                return existing;
+            }
+        ));
+    
+    // 3. lastVisitDate 기준으로 정렬 (오래된 순)
+    List<Map<String, Object>> allResults = latestByName.values().stream()
+        .map(soul -> {
+            LocalDate lastVisitDate = soul.getEndDate();
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("soul", mapper.toResponse(soul));
+            result.put("lastVisitDate", lastVisitDate);
+            
+            return result;
+        })
+        // 가장 오래 안 온 순서로 정렬 (lastVisitDate 오름차순)
+        .sorted((a, b) -> {
+            LocalDate dateA = (LocalDate) a.get("lastVisitDate");
+            LocalDate dateB = (LocalDate) b.get("lastVisitDate");
+            return dateA.compareTo(dateB);
+        })
+        .collect(Collectors.toList());
+    
+    // 4. 페이징 처리
+    int totalElements = allResults.size();
+    int startIndex = page * size;
+    
+    if (startIndex >= totalElements) {
+        return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), totalElements);
     }
+    
+    int endIndex = Math.min(startIndex + size, totalElements);
+    List<Map<String, Object>> pagedResults = allResults.subList(startIndex, endIndex);
+    
+    Pageable pageable = PageRequest.of(page, size);
+    return new PageImpl<>(pagedResults, pageable, totalElements);
+}
 
     /**
      * 🎯 TODO: TravelingVisit을 활용한 정확한 오래된 유랑 계산 (미래 구현)

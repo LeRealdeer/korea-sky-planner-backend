@@ -1,6 +1,7 @@
 package com.springboot.board.api.v1.controller;
 
 import com.springboot.board.api.v1.dto.request.TravelingVisitCreateRequest;
+import com.springboot.board.api.v1.dto.request.TravelingVisitUpdateRequest;
 import com.springboot.board.api.v1.dto.response.TravelingVisitResponse;
 import com.springboot.board.application.service.TravelingVisitService;
 import com.springboot.board.common.response.ApiResponse;
@@ -46,19 +47,18 @@ public class VisitController {
         return ApiResponse.success(visitService.createVisit(request));
     }
 
-    @Operation(summary = "유랑 방문 기록 수정", description = "기존 유랑 방문 기록을 수정합니다.")
-    @PutMapping("/{id}")
-    public ApiResponse<TravelingVisitResponse> updateVisit(
-            @PathVariable Long id,
-            @Valid @RequestBody TravelingVisitCreateRequest request) {
-        // TODO: Service에 update 메소드 추가 필요
-        return ApiResponse.success(null);
-    }
-
     @Operation(summary = "유랑 방문 기록 삭제", description = "특정 ID의 유랑 방문 기록을 삭제합니다.")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteVisit(@PathVariable Long id) {
         visitService.deleteVisit(id);
+    }
+
+    @Operation(summary = "유랑 방문 기록 수정", description = "기존 유랑 방문 기록을 수정합니다.")
+    @PutMapping("/{id}")
+    public ApiResponse<TravelingVisitResponse> updateVisit(
+            @PathVariable Long id,
+            @Valid @RequestBody TravelingVisitUpdateRequest request) {
+        return ApiResponse.success(visitService.updateVisit(id, request));
     }
 }

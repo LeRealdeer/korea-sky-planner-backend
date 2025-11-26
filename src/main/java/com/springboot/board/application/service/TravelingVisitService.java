@@ -1,6 +1,7 @@
 package com.springboot.board.application.service;
 
 import com.springboot.board.api.v1.dto.request.TravelingVisitCreateRequest;
+import com.springboot.board.api.v1.dto.request.TravelingVisitUpdateRequest;
 import com.springboot.board.api.v1.dto.response.TravelingVisitResponse;
 import com.springboot.board.application.mapper.SoulMapper;
 import com.springboot.board.common.exception.DataNotFoundException;
@@ -58,7 +59,6 @@ public class TravelingVisitService {
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .isWarbandVisit(request.isWarbandVisit())
-                .notes(request.getNotes())
                 .build();
 
         TravelingVisitEntity saved = visitRepository.save(entity);
@@ -72,4 +72,38 @@ public class TravelingVisitService {
         }
         visitRepository.deleteById(id);
     }
+
+    @Transactional
+    public TravelingVisitResponse updateVisit(Long id, TravelingVisitUpdateRequest request) {
+        TravelingVisitEntity visit = visitRepository.findById(id)
+                .orElseThrow(() -> new DataNotFoundException("유랑 방문 기록을 찾을 수 없습니다. id=" + id));
+
+        // 방문 번호 중복 체크 (자기 자신은 제외)
+        if (request.getVisitNumber() != null && !request.getVisitNumber().equals(visit.getVisitNumber())) {
+            visitRepository.findBySoulIdAndVisitNumber(visit.getSoul().getId(), request.getVisitNumber())
+                    .ifPresent(existing -> {
+                        if (!existing.getId().equals(id)) {
+                            throw new IllegalArgumentException(
+                                    "이미 존재하는 방문 번호입니다. visitNumber=" + request.getVisitNumber());
+                        }
+                    });
+        }
+
+        // 필드 업데이트 (null이 아닌 것만)
+        if (request.getVisitNumber() != null) {
+            visit.setVisitNumber(request.getVisitNumber());
+        }
+        if (request.getStartDate() != null) {
+            visit.setStartDate(request.getStartDate());
+        }
+        if (request.getEndDate() != null) {
+            visit.setEndDate(request.getEndDate());
+        }
+        if (request.getIsWarbandVisit() != null) {
+            visit.setWarbandVisit(request.getIsWarbandVisit());
+        }
+
+        return soulMapper.visitToResponse(visit);
+    }
+
 }

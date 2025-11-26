@@ -1,6 +1,7 @@
 package com.springboot.board.api.v1.controller;
 
 import com.springboot.board.api.v1.dto.request.SeasonCreateRequest;
+import com.springboot.board.api.v1.dto.request.SeasonUpdateRequest;
 import com.springboot.board.api.v1.dto.response.SeasonResponse;
 import com.springboot.board.application.service.SeasonService;
 import com.springboot.board.common.response.ApiResponse;
@@ -51,5 +52,13 @@ public class SeasonController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteSeason(@PathVariable Integer id) {
         seasonService.deleteSeason(id);
+    }
+
+    @Operation(summary = "시즌 수정")
+    @PutMapping("/{id}")
+    public ApiResponse<SeasonResponse> updateSeason(
+            @PathVariable Integer id,
+            @Valid @RequestBody SeasonUpdateRequest request) {
+        return ApiResponse.success(seasonService.updateSeason(id, request));
     }
 }

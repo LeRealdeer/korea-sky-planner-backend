@@ -1,7 +1,5 @@
 package com.springboot.board.api.v1.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,23 +7,14 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 @Getter
-@Setter // 추가!
+@Setter
 @NoArgsConstructor
-public class SeasonCreateRequest {
-
-    @NotBlank
+public class SeasonUpdateRequest {
+    
     private String name;
-
-    @NotNull
     private Integer orderNum;
-
-    @NotNull
     private LocalDate startDate;
-
-    @NotNull
     private LocalDate endDate;
-
     private String color;
-
-    private Boolean isCollaboration = false; // boolean → Boolean로 변경하고 기본값 설정
+    private Boolean isCollaboration;
 }

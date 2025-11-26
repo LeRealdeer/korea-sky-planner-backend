@@ -26,21 +26,16 @@ public class ImageController {
     private final ImageService imageService;
     private final ImageRepository imageRepository;
 
-    @Operation(summary = "이미지 업로드", description = "영혼 또는 유랑 방문의 이미지를 업로드합니다.")
+    @Operation(summary = "이미지 업로드", description = "영혼의 이미지를 업로드합니다.")
     @PostMapping
     public ApiResponse<ImageResponse> upload(
-            @RequestParam(required = false) Integer soulId,
-            @RequestParam(required = false) Long travelingVisitId,
+            @RequestParam Integer soulId,
             @RequestParam String imageType,
             @RequestParam MultipartFile file) throws Exception {
         
-        log.info("Image upload - soulId: {}, visitId: {}, type: {}", soulId, travelingVisitId, imageType);
+        log.info("Image upload - soulId: {}, type: {}", soulId, imageType);
 
-        if (soulId == null && travelingVisitId == null) {
-            throw new IllegalArgumentException("soulId 또는 travelingVisitId 중 하나는 필수입니다.");
-        }
-
-        ImageEntity img = imageService.upload(soulId, travelingVisitId, imageType, file);
+        ImageEntity img = imageService.upload(soulId, imageType, file);
         return ApiResponse.success(ImageResponse.fromEntity(img));
     }
 
@@ -111,18 +106,6 @@ public class ImageController {
         Page<ImageResponse> responsePage = entities.map(ImageResponse::fromEntity);
         
         return ApiResponse.success(responsePage);
-    }
-
-    @Operation(summary = "특정 유랑 방문의 이미지 조회")
-    @GetMapping("/visit/{visitId}")
-    public ApiResponse<Page<ImageResponse>> getByVisitId(
-            @PathVariable Long visitId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
-        
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        // Repository에 메소드 추가 필요
-        return ApiResponse.success(Page.empty());
     }
 
     @Operation(summary = "이미지 타입별 조회")
