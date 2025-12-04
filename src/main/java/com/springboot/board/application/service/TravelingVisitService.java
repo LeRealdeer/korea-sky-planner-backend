@@ -3,13 +3,19 @@ package com.springboot.board.application.service;
 import com.springboot.board.api.v1.dto.request.TravelingVisitCreateRequest;
 import com.springboot.board.api.v1.dto.request.TravelingVisitUpdateRequest;
 import com.springboot.board.api.v1.dto.response.TravelingVisitResponse;
+import com.springboot.board.api.v1.dto.response.TravelingVisitWithSoulResponse;
 import com.springboot.board.application.mapper.SoulMapper;
 import com.springboot.board.common.exception.DataNotFoundException;
+import com.springboot.board.domain.entity.ImageEntity;
 import com.springboot.board.domain.entity.SoulEntity;
 import com.springboot.board.domain.entity.TravelingVisitEntity;
 import com.springboot.board.domain.repository.SoulRepository;
 import com.springboot.board.domain.repository.TravelingVisitRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +48,60 @@ public class TravelingVisitService {
         TravelingVisitEntity visit = visitRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("유랑 방문 기록을 찾을 수 없습니다. id=" + id));
         return soulMapper.visitToResponse(visit);
+    }
+
+    /**
+     * 모든 유랑 이력 조회 (visitNumber > 0만, startDate 내림차순)
+     */
+    public Page<TravelingVisitWithSoulResponse> getAllVisitsWithSoul(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, 
+            Sort.by(Sort.Order.desc("startDate"), Sort.Order.desc("visitNumber")));
+        
+        Page<TravelingVisitEntity> visits = visitRepository.findAllWithSoulAndImages(pageable);
+        
+        return visits.map(this::toVisitWithSoulResponse);
+    }
+
+    /**
+     * 키워드로 유랑 이력 검색 (visitNumber > 0만, startDate 내림차순)
+     */
+    public Page<TravelingVisitWithSoulResponse> searchVisitsWithSoul(String query, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, 
+            Sort.by(Sort.Order.desc("startDate"), Sort.Order.desc("visitNumber")));
+        
+        Page<TravelingVisitEntity> visits = visitRepository.searchWithSoulAndImages(query, pageable);
+        
+        return visits.map(this::toVisitWithSoulResponse);
+    }
+
+    /**
+     * TravelingVisitEntity -> TravelingVisitWithSoulResponse 변환
+     */
+    private TravelingVisitWithSoulResponse toVisitWithSoulResponse(TravelingVisitEntity visit) {
+        SoulEntity soul = visit.getSoul();
+        
+        // 대표 이미지 URL 추출
+        String representativeImageUrl = soul.getImages() != null 
+            ? soul.getImages().stream()
+                .filter(img -> "REPRESENTATIVE".equals(img.getImageType()))
+                .findFirst()
+                .map(ImageEntity::getUrl)
+                .orElse(null)
+            : null;
+
+        return TravelingVisitWithSoulResponse.builder()
+                .visitId(visit.getId())
+                .visitNumber(visit.getVisitNumber())
+                .startDate(visit.getStartDate())
+                .endDate(visit.getEndDate())
+                .isWarbandVisit(visit.isWarbandVisit())
+                .soulId(soul.getId().longValue())
+                .soulName(soul.getName())
+                .seasonName(soul.getSeasonName())
+                .orderNum(soul.getOrderNum())
+                .rerunCount(soul.getRerunCount())
+                .representativeImageUrl(representativeImageUrl)
+                .build();
     }
 
     @Transactional
@@ -105,5 +165,10 @@ public class TravelingVisitService {
 
         return soulMapper.visitToResponse(visit);
     }
-
 }
+
+
+
+
+
+

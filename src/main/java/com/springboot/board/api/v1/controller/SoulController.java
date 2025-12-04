@@ -24,11 +24,6 @@ public class SoulController {
 
     private final SoulService soulService;
 
-    @Operation(summary = "영혼 목록 조회 (페이징)")
-    @GetMapping
-    public ApiResponse<Page<SoulResponse>> getSouls(@RequestParam(defaultValue = "0") int page) {
-        return ApiResponse.success(soulService.getSouls(page));
-    }
 
     @Operation(summary = "모든 영혼 조회")
     @GetMapping("/all")
@@ -54,13 +49,24 @@ public class SoulController {
         return ApiResponse.success(soulService.searchSouls(query));
     }
 
-    @Operation(summary = "오래된 유랑 조회")
-    @GetMapping("/oldest-spirits")
-    public ApiResponse<Page<Map<String, Object>>> getOldestSpirits(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.success(soulService.getOldestSpirits(page, size));
-    }
+
+// ✅ 새로 추가 (유랑 대백과용)
+@Operation(summary = "유랑 대백과 - 모든 유랑 이력 조회")
+@GetMapping("/traveling-visits")
+public ApiResponse<Page<Map<String, Object>>> getTravelingVisits(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "15") int size) {
+    return ApiResponse.success(soulService.getAllTravelingVisits(page, size));
+}
+
+// ✅ 기존 유지 (오래된 영혼용)
+@Operation(summary = "오래된 유랑 조회")
+@GetMapping("/oldest-spirits")
+public ApiResponse<Page<Map<String, Object>>> getOldestSpirits(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+    return ApiResponse.success(soulService.getOldestSpirits(page, size));
+}
 
     @Operation(summary = "영혼 생성")
     @PostMapping
@@ -89,4 +95,16 @@ public class SoulController {
     public ApiResponse<Map<String, List<SoulResponse>>> getNeighbors(@PathVariable Integer id) {
         return ApiResponse.success(soulService.getNeighbors(id));
     }
+
+// SoulController.java의 getSouls 메소드 수정
+
+@Operation(summary = "영혼 목록 조회 (페이징)")
+@GetMapping
+public ApiResponse<Page<SoulResponse>> getSouls(@RequestParam(defaultValue = "0") int page) {
+    return ApiResponse.success(soulService.getSouls(page));
+}
+
+
+
+
 }

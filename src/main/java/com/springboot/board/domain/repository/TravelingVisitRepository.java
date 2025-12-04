@@ -19,7 +19,16 @@ public interface TravelingVisitRepository extends JpaRepository<TravelingVisitEn
      * 특정 영혼의 모든 유랑 이력 조회 (visitNumber 오름차순)
      */
     List<TravelingVisitEntity> findBySoulIdOrderByVisitNumberAsc(Integer soulId);
-    
+    /**
+ * visitNumber > 0인 모든 유랑 이력 조회 (Soul과 Image 함께)
+ */
+@Query("SELECT DISTINCT v FROM TravelingVisitEntity v " +
+       "LEFT JOIN FETCH v.soul s " +
+       "LEFT JOIN FETCH s.images " +
+       "LEFT JOIN FETCH s.season " +
+       "WHERE v.visitNumber > 0 " +
+       "ORDER BY v.endDate DESC")
+List<TravelingVisitEntity> findAllValidVisitsWithSoul();
     /**
      * 특정 영혼의 특정 visitNumber 존재 여부 확인
      */
