@@ -43,12 +43,16 @@ public class SoulController {
         return ApiResponse.success(soulService.getSoul(id));
     }
 
-    @Operation(summary = "영혼 검색")
-    @GetMapping("/search")
-    public ApiResponse<List<SoulResponse>> searchSouls(@RequestParam String query) {
-        return ApiResponse.success(soulService.searchSouls(query));
-    }
-
+@Operation(summary = "영혼 목록 조회 (페이징, 필터링, 검색)")
+@GetMapping
+public ApiResponse<Page<SoulResponse>> getSouls(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String seasonName,
+        @RequestParam(required = false) String query
+) {
+    return ApiResponse.success(soulService.getSouls(page, size, seasonName, query));
+}
 
 // ✅ 새로 추가 (유랑 대백과용)
 @Operation(summary = "유랑 대백과 - 모든 유랑 이력 조회")
@@ -95,16 +99,6 @@ public ApiResponse<Page<Map<String, Object>>> getOldestSpirits(
     public ApiResponse<Map<String, List<SoulResponse>>> getNeighbors(@PathVariable Integer id) {
         return ApiResponse.success(soulService.getNeighbors(id));
     }
-
-// SoulController.java의 getSouls 메소드 수정
-
-@Operation(summary = "영혼 목록 조회 (페이징)")
-@GetMapping
-public ApiResponse<Page<SoulResponse>> getSouls(@RequestParam(defaultValue = "0") int page) {
-    return ApiResponse.success(soulService.getSouls(page));
-}
-
-
 
 
 }
