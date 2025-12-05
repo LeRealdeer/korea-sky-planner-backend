@@ -33,14 +33,12 @@ jobs:
             echo "Error: HOST environment variable is not set"; exit 1;
           fi
           
-          # 호스트 키 스캔 및 등록
           ssh-keyscan "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || {
             echo "Failed to add host to known_hosts"; exit 1;
           }
 
       - name: Update Source Code on OCI Server
         run: |
-          # OCI 서버 접속 및 코드 동기화
           ssh $USER@$HOST << EOF
             set -e
             if [ ! -d $REPO_DIR ]; then
@@ -59,7 +57,6 @@ jobs:
             fi
           EOF
 
-      # ✅ 새로 추가: 메모리 최적화
       - name: Optimize Memory Before Build
         run: |
           ssh $USER@$HOST << EOF
@@ -79,12 +76,10 @@ jobs:
       - name: Clean Maven Project
         run: ssh $USER@$HOST "cd $REPO_DIR && mvn clean" || { echo "Failed to clean Maven project"; exit 1; }
 
-      # ✅ 수정: Maven 빌드에 메모리 제한 추가
       - name: Build Maven Project
         run: |
           ssh $USER@$HOST << EOF
             cd $REPO_DIR
-            # Maven 메모리 제한 (512MB)
             export MAVEN_OPTS="-Xmx512m -Xms256m"
             mvn package -DskipTests || { 
               echo "Failed to build Maven project"; 
@@ -92,80 +87,103 @@ jobs:
             }
           EOF
 
-      # ✅ 수정: Java 실행에 메모리 제한 추가
       - name: Deploy Application & Verify Health
         run: |
-          ssh $USER@$HOST << EOF
+          ssh $USER@$HOST << 'EOF'
             set -e
             
-            REPO_DIR="${REPO_DIR:-/home/ubuntu/korea-sky-planner-backend}"
-            JAR_NAME="${JAR_NAME:-Board-0.0.1-SNAPSHOT.jar}"
+            REPO_DIR="/home/ubuntu/korea-sky-planner-backend"
+            JAR_NAME="Board-0.0.1-SNAPSHOT.jar"
             LOG_FILE="app.log"
-            JAR_PATH="target/\$JAR_NAME"
+            JAR_PATH="target/$JAR_NAME"
 
             echo "Checking for existing application..."
             
-            # 기존 애플리케이션 PID 확인 및 종료
-            if pid=\$(pgrep -f -u $USER \$JAR_NAME); then
-              echo "Stopping existing application (PID: \$pid)..."
-              sudo kill -15 \$pid 
+            if pid=$(pgrep -f "$JAR_NAME"); then
+              echo "Stopping existing application (PID: $pid)..."
+              sudo kill -15 $pid 
               sleep 10 
-              if pgrep -f -u $USER \$JAR_NAME; then
+              if pgrep -f "$JAR_NAME"; then
                   echo "Application not stopped, forcing kill..."
-                  sudo kill -9 \$pid || true
+                  sudo kill -9 $pid || true
               fi
             else
               echo "No running application found."
             fi
             
-            # 메모리 정리 (배포 직전)
             echo "=== Clearing memory before deployment ==="
             sudo sync
             sudo sysctl -w vm.drop_caches=3
             free -h
 
             echo "Starting new application..."
-            cd \$REPO_DIR
+            cd $REPO_DIR
             
-            # ✅ Java 실행 시 메모리 제한 추가 (384MB)
+            # 로그 파일 백업
+            if [ -f $LOG_FILE ]; then
+              mv $LOG_FILE "${LOG_FILE}.old"
+            fi
+            
             nohup java \
               -Xmx384m \
               -Xms256m \
               -XX:+UseG1GC \
               -XX:MaxGCPauseMillis=200 \
-              -jar \$JAR_PATH > \$LOG_FILE 2>&1 &
+              -jar $JAR_PATH > $LOG_FILE 2>&1 &
             
-            echo "Waiting for application to start (Max 60s)..."
+            NEW_PID=$!
+            echo "Started application with PID: $NEW_PID"
+            
+            echo "Waiting for application to start (Max 120s)..."
             START_SUCCESS=0
-            MAX_CHECKS=12
+            MAX_CHECKS=24  # 5초 * 24 = 120초
             
-            for i in \$(seq 1 \$MAX_CHECKS); do
+            for i in $(seq 1 $MAX_CHECKS); do
               sleep 5
-              if grep -q "Started" \$LOG_FILE; then
-                echo "✅ Application started successfully on check \$i."
+              
+              # 프로세스가 죽었는지 확인
+              if ! kill -0 $NEW_PID 2>/dev/null; then
+                echo "🔴 ERROR: Application process died!"
+                echo "Last 50 lines of log:"
+                tail -n 50 $LOG_FILE
+                exit 1
+              fi
+              
+              # 시작 완료 확인
+              if grep -q "Started BoardApplication" $LOG_FILE; then
+                echo "✅ Application started successfully on check $i (${i}0 seconds)."
                 START_SUCCESS=1
                 break
               fi
-              echo "Check \$i/\$MAX_CHECKS: Not yet started..."
+              
+              # 진행 상황 출력
+              echo "Check $i/$MAX_CHECKS (${i}0s): Still starting..."
+              tail -n 3 $LOG_FILE | grep -v "^$"
             done
             
-            if [ \$START_SUCCESS -eq 0 ]; then
-              echo "🔴 ERROR: Application failed to start within the timeout (60 seconds)."
-              echo "Last 30 lines of log for debugging:"
-              tail -n 30 \$LOG_FILE
+            if [ $START_SUCCESS -eq 0 ]; then
+              echo "🔴 ERROR: Application failed to start within 120 seconds."
+              echo ""
+              echo "=== Full log ==="
+              cat $LOG_FILE
               exit 1
             fi
             
+            echo ""
             echo "=== Final memory status ==="
             free -h
-            echo "Deployment successful and verified."
+            echo ""
+            echo "=== Application info ==="
+            echo "PID: $NEW_PID"
+            ps aux | grep $JAR_NAME | grep -v grep
+            echo ""
+            echo "✅ Deployment successful and verified."
           EOF
 
-      # ✅ 새로 추가: 항상 정리
       - name: Cleanup (Always Run)
         if: always()
         run: |
-          ssh $USER@$HOST << EOF
+          ssh $USER@$HOST << 'EOF'
             sudo pkill -9 runnv 2>/dev/null || true
             sudo rm -rf /tmp/runnv 2>/dev/null || true
           EOF
