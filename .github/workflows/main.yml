@@ -122,7 +122,8 @@ jobs:
             # 로그 파일 백업
             [ -f $LOG_FILE ] && mv $LOG_FILE "${LOG_FILE}.old"
             
-            # 백그라운드로 시작
+            # .env 파일 로드하고 백그라운드로 시작
+            export $(cat .env | grep -v '^#' | xargs) && \
             nohup java \
               -Xmx384m \
               -Xms256m \
