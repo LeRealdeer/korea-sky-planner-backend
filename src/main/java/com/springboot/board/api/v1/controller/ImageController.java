@@ -26,7 +26,24 @@ public class ImageController {
     private final ImageService imageService;
     private final ImageRepository imageRepository;
 
-    @Operation(summary = "이미지 업로드", description = "영혼의 이미지를 업로드합니다.")
+    // ✅ 새로운 업로드 엔드포인트 (soulId 선택적)
+    @Operation(summary = "이미지 업로드 (영혼 생성/수정용)", 
+               description = "영혼의 이미지를 업로드합니다. soulId는 수정 시에만 필요합니다.")
+    @PostMapping("/upload")
+    public ApiResponse<ImageResponse> uploadForCreation(
+            @RequestParam MultipartFile file,
+            @RequestParam String imageType) throws Exception {
+        
+        log.info("Image upload - type: {}", imageType);
+
+        // soulId 없이 임시 업로드 (생성 시)
+        ImageEntity img = imageService.uploadWithoutSoul(imageType, file);
+        return ApiResponse.success(ImageResponse.fromEntity(img));
+    }
+
+    // ✅ 기존 업로드 엔드포인트 (soulId 필수)
+    @Operation(summary = "이미지 업로드 (영혼 연결)", 
+               description = "특정 영혼에 이미지를 업로드합니다.")
     @PostMapping
     public ApiResponse<ImageResponse> upload(
             @RequestParam Integer soulId,
@@ -49,7 +66,15 @@ public class ImageController {
         return ApiResponse.success(ImageResponse.fromEntity(img));
     }
 
-    @Operation(summary = "이미지 삭제")
+    // ✅ URL로 이미지 삭제 (프론트엔드 호환)
+    @Operation(summary = "이미지 삭제 (URL 기반)")
+    @DeleteMapping
+    public ApiResponse<Void> deleteByUrl(@RequestBody DeleteImageRequest request) throws Exception {
+        imageService.deleteByUrl(request.getUrl());
+        return ApiResponse.success(null);
+    }
+
+    @Operation(summary = "이미지 삭제 (ID 기반)")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) throws Exception {
         imageService.delete(id);
@@ -120,5 +145,11 @@ public class ImageController {
         Page<ImageResponse> responsePage = entities.map(ImageResponse::fromEntity);
         
         return ApiResponse.success(responsePage);
+    }
+
+    // ✅ 요청 DTO
+    @lombok.Data
+    public static class DeleteImageRequest {
+        private String url;
     }
 }

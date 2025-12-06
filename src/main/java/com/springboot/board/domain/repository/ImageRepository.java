@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ImageRepository extends JpaRepository<ImageEntity, Long> {
@@ -32,4 +33,7 @@ public interface ImageRepository extends JpaRepository<ImageEntity, Long> {
 
     @Query("SELECT i FROM ImageEntity i WHERE DATE(i.uploadedAt) = CURRENT_DATE")
     Page<ImageEntity> findTodaysImages(Pageable pageable);
+    
+    // ✅ 파일명으로 이미지 찾기 (URL 기반 삭제용)
+    Optional<ImageEntity> findByFileName(String fileName);
 }
