@@ -2,6 +2,7 @@ package com.springboot.board.api.v1.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -51,6 +52,18 @@ public class SoulCreateRequest {
     /** 영혼 설명 */
     private String description;
 
-    /** ✅ 시즌 가이드 여부 (추가!) */
+    /** 시즌 가이드 여부 */
     private Boolean isSeasonGuide = false;
+
+    /** ✅ 이미지 목록 (추가!) */
+    private List<ImageInfo> images;
+
+    /**
+     * 이미지 정보 내부 클래스
+     */
+    @Data
+    public static class ImageInfo {
+        private String imageType;
+        private String url;
+    }
 }

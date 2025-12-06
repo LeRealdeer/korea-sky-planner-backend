@@ -50,10 +50,9 @@ jobs:
             else
               echo "Repository exists. Pulling latest changes..."
               cd $REPO_DIR
-              git reset --hard HEAD
-              git pull || {
-                echo "Failed to pull latest changes"; exit 1;
-              }
+              git fetch origin
+              git reset --hard origin/main
+              git clean -fd
             fi
           EOF
 
@@ -80,7 +79,7 @@ jobs:
         run: |
           ssh $USER@$HOST << EOF
             cd $REPO_DIR
-            export MAVEN_OPTS="-Xmx512m -Xms256m"
+            export MAVEN_OPTS="-Xmx768m -Xms384m"
             mvn package -DskipTests || { 
               echo "Failed to build Maven project"; 
               exit 1; 
@@ -122,10 +121,10 @@ jobs:
             # 로그 파일 백업
             [ -f $LOG_FILE ] && mv $LOG_FILE "${LOG_FILE}.old"
             
-            # .env 파일 로드하고 백그라운드로 시작
+            # .env 파일 로드하고 백그라운드로 시작 (메모리 512MB로 증가)
             export $(cat .env | grep -v '^#' | xargs) && \
             nohup java \
-              -Xmx384m \
+              -Xmx512m \
               -Xms256m \
               -XX:+UseG1GC \
               -XX:MaxGCPauseMillis=200 \
