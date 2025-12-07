@@ -3,28 +3,22 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
-
+      
   application:
     name: Board
 
-  # 🚀 DB 연결 수정 (핵심!)
   datasource:
-    # Railway가 제공하는 변수 이름과 일치시키고, 변수 치환 오류를 우회하기 위해
-    # Railway가 자동으로 제공하는 개별 변수 이름을 사용하거나, 
-    # 혹은 Railway의 변수 이름을 그대로 사용하도록 변경합니다.
-    # 이전의 ${DB_URL}이 아닌, Railway에서 생성된 변수 이름인 ${MYSQL_URL}로 시도합니다.
-    url: ${MYSQL_URL}
+    url: ${DB_URL}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
-    # ⚠️ 경고를 피하기 위해 database-platform을 삭제합니다.
-    # database-platform: org.hibernate.dialect.MySQLDialect 
+    database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
-        show_sql: true # '[show_sql]' 대신 일반 표기 사용
-        format_sql: true # '[format_sql]' 대신 일반 표기 사용
+        '[show_sql]': true
+        '[format_sql]': true
         jdbc:
           time_zone: Asia/Seoul
     hibernate:
@@ -32,13 +26,13 @@ spring:
 
   jackson:
     serialization:
-      write-dates-as-timestamps: false
-      fail-on-empty-beans: false
+      write-dates-as-timestamps: false  # ISO-8601 형식으로 날짜 출력
+      fail-on-empty-beans: false       # 빈 Bean 직렬화 오류 방지
     deserialization:
-      fail-on-unknown-properties: false
-    default-property-inclusion: non-null
-    date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: Asia/Seoul
+      fail-on-unknown-properties: false # 알 수 없는 프로퍼티 무시
+    default-property-inclusion: non-null # null 값 무시
+    date-format: yyyy-MM-dd HH:mm:ss    # 날짜 형식
+    time-zone: Asia/Seoul               # 타임존 설정
 
 server:
   port: 8080
@@ -49,7 +43,7 @@ server:
       enabled: true
       force: true
 
-# Swagger 설정 수정 (변동 없음)
+# Swagger 설정 수정
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
