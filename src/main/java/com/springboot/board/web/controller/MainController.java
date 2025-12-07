@@ -11,7 +11,7 @@ public class MainController {
     
     @GetMapping
     public RedirectView root() {
-        return new RedirectView("/api/v1/questions");
+        return new RedirectView("/api/v1/souls");
     }
 
     
