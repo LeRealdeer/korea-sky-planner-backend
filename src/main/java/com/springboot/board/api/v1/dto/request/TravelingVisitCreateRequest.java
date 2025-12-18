@@ -1,12 +1,15 @@
 package com.springboot.board.api.v1.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 
 @Getter
+@Setter
 @NoArgsConstructor
 public class TravelingVisitCreateRequest {
 
@@ -22,5 +25,6 @@ public class TravelingVisitCreateRequest {
     @NotNull
     private LocalDate endDate;
 
-    private boolean isWarbandVisit = false;
+    @JsonProperty("isWarbandVisit")
+    private Boolean isWarbandVisit = false;
 }
