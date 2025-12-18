@@ -118,7 +118,7 @@ public class TravelingVisitService {
                 .visitNumber(request.getVisitNumber())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
-                .isWarbandVisit(request.isWarbandVisit())
+                .isWarbandVisit(request.getIsWarbandVisit())
                 .build();
 
         TravelingVisitEntity saved = visitRepository.save(entity);
