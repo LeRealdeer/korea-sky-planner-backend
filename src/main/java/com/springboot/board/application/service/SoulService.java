@@ -35,9 +35,6 @@ public class SoulService {
     /**
      * 영혼 생성
      */
-    /**
-     * 영혼 생성
-     */
     @Transactional
     public SoulResponse createSoul(SoulCreateRequest req) {
         // 1. 시즌 조회
@@ -48,21 +45,60 @@ public class SoulService {
         SoulEntity entity = mapper.toEntity(req);
         entity.setSeason(season);
 
-        // 3. 저장 (이미지는 별도의 ImageController를 통해 업로드)
+        // 3. 저장
         SoulEntity saved = soulRepository.save(entity);
         return mapper.toResponse(saved);
     }
 
     /**
-     * 영혼 수정
+     * 영혼 수정 - 500 에러 해결
      */
     @Transactional
     public SoulResponse updateSoul(Integer id, SoulUpdateRequest req) {
         SoulEntity entity = soulRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("영혼을 찾을 수 없습니다. id=" + id));
 
-        // MapStruct를 사용한 필드 업데이트
-        mapper.updateEntity(entity, req);
+        // MapStruct 대신 수동으로 필드 업데이트
+        if (req.getName() != null && !req.getName().isBlank()) {
+            entity.setName(req.getName());
+        }
+        
+        if (req.getSeasonName() != null && !req.getSeasonName().isBlank()) {
+            entity.setSeasonName(req.getSeasonName());
+        }
+        
+        if (req.getOrderNum() != null) {
+            entity.setOrderNum(req.getOrderNum());
+        }
+        
+        if (req.getStartDate() != null) {
+            entity.setStartDate(req.getStartDate());
+        }
+        
+        if (req.getEndDate() != null) {
+            entity.setEndDate(req.getEndDate());
+        }
+        
+        if (req.getRerunCount() != null) {
+            entity.setRerunCount(req.getRerunCount());
+        }
+        
+        // 키워드 리스트 업데이트
+        if (req.getKeywords() != null) {
+            entity.setKeywords(req.getKeywords());
+        }
+        
+        if (req.getCreator() != null) {
+            entity.setCreator(req.getCreator());
+        }
+        
+        if (req.getDescription() != null) {
+            entity.setDescription(req.getDescription());
+        }
+        
+        if (req.getIsSeasonGuide() != null) {
+            entity.setSeasonGuide(req.getIsSeasonGuide());
+        }
 
         return mapper.toResponse(entity);
     }
@@ -88,30 +124,29 @@ public class SoulService {
         return mapper.toResponse(soul);
     }
 
-public Page<SoulResponse> getSouls(int page, int size, String seasonName, String query) {
-    Pageable pageable = PageRequest.of(page, size, Sort.by("orderNum").ascending());
-    Page<SoulEntity> soulPage;
+    public Page<SoulResponse> getSouls(int page, int size, String seasonName, String query) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("orderNum").ascending());
+        Page<SoulEntity> soulPage;
 
-    // 시즌 + 검색 둘 다 있는 경우
-    if (seasonName != null && !seasonName.isEmpty() && query != null && !query.isEmpty()) {
-        soulPage = soulRepository.findBySeasonNameAndQuery(seasonName, query, pageable);
-    }
-    // 시즌만 있는 경우
-    else if (seasonName != null && !seasonName.isEmpty()) {
-        soulPage = soulRepository.findBySeasonName(seasonName, pageable);
-    }
-    // 검색만 있는 경우
-    else if (query != null && !query.isEmpty()) {
-        soulPage = soulRepository.findByNameOrKeywordsContaining(query, pageable);
-    }
-    // 둘 다 없는 경우 (전체)
-    else {
-        soulPage = soulRepository.findAll(pageable);
-    }
+        // 시즌 + 검색 둘 다 있는 경우
+        if (seasonName != null && !seasonName.isEmpty() && query != null && !query.isEmpty()) {
+            soulPage = soulRepository.findBySeasonNameAndQuery(seasonName, query, pageable);
+        }
+        // 시즌만 있는 경우
+        else if (seasonName != null && !seasonName.isEmpty()) {
+            soulPage = soulRepository.findBySeasonName(seasonName, pageable);
+        }
+        // 검색만 있는 경우
+        else if (query != null && !query.isEmpty()) {
+            soulPage = soulRepository.findByNameOrKeywordsContaining(query, pageable);
+        }
+        // 둘 다 없는 경우 (전체)
+        else {
+            soulPage = soulRepository.findAll(pageable);
+        }
 
-    // mapper 직접 사용
-    return soulPage.map(mapper::toResponse);
-}
+        return soulPage.map(mapper::toResponse);
+    }
 
     /**
      * 모든 영혼 조회 (내림차순)
@@ -136,24 +171,18 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
     }
 
     /**
-     * ✅ 시즌별 영혼 조회 (추가!)
+     * 시즌별 영혼 조회
      */
     public List<SoulResponse> getSoulsBySeason(Integer seasonId) {
         return soulRepository.findBySeasonId(seasonId).stream()
                 .map(mapper::toResponse)
                 .collect(Collectors.toList());
     }
-    // src/main/java/com/springboot/board/application/service/SoulService.java
-    // src/main/java/com/springboot/board/application/service/SoulService.java
 
     /**
      * 모든 유랑 이력 조회 (페이징)
-     * - TravelingVisit 기반으로 모든 유랑 표시
-     * - visitNumber > 0만 (시즌 당시 제외)
-     * - 정렬: 시작일 내림차순 → 이름 오름차순
      */
     public Page<Map<String, Object>> getAllTravelingVisits(int page, int size) {
-        // 1. 모든 유랑 이력 조회
         List<TravelingVisitEntity> allVisits = travelingVisitRepository
                 .findAllValidVisitsWithSoul();
 
@@ -161,18 +190,15 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), 0);
         }
 
-        // 2. 결과 리스트 생성
         List<Map<String, Object>> results = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
         for (TravelingVisitEntity visit : allVisits) {
             SoulEntity soul = visit.getSoul();
 
-            // 현재 진행중인지 체크
             boolean isActive = !today.isBefore(visit.getStartDate()) &&
                     !today.isAfter(visit.getEndDate());
 
-            // SoulResponse 생성 (기존 mapper 활용)
             SoulResponse soulResponse = mapper.toResponse(soul);
 
             Map<String, Object> result = new HashMap<>();
@@ -191,32 +217,28 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             result.put("isSeasonGuide", soul.isSeasonGuide());
             result.put("images", ImageResponse.fromEntities(soul.getImages()));
 
-            // TravelingVisit 관련 정보
             result.put("visitNumber", visit.getVisitNumber());
             result.put("isWarbandVisit", visit.isWarbandVisit());
             result.put("isActive", isActive);
-            result.put("__travelingVisitId", visit.getId()); // 고유 식별자
+            result.put("__travelingVisitId", visit.getId());
 
             results.add(result);
         }
 
-        // 3. 정렬: 시작일 내림차순 → 이름 오름차순
         results.sort((a, b) -> {
             LocalDate dateA = (LocalDate) a.get("startDate");
             LocalDate dateB = (LocalDate) b.get("startDate");
 
-            int dateCompare = dateB.compareTo(dateA); // 최신순
+            int dateCompare = dateB.compareTo(dateA);
             if (dateCompare != 0) {
                 return dateCompare;
             }
 
-            // 시작일이 같으면 이름 순
             String nameA = (String) a.get("name");
             String nameB = (String) b.get("name");
             return nameA.compareTo(nameB);
         });
 
-        // 4. 페이징 처리
         int totalElements = results.size();
         int startIndex = page * size;
 
@@ -233,12 +255,8 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
 
     /**
      * 일반 유랑 대백과 조회
-     * - 모든 유랑 이력 표시 (visitNumber > 0만)
-     * - 같은 영혼이 여러 번 와도 각각 표시
-     * - 정렬: 유랑 시작일 기준 내림차순 → 같으면 영혼 이름 오름차순
      */
     public Page<Map<String, Object>> getTravelingEncyclopedia(int page, int size) {
-        // 1. 모든 유랑 이력 조회 (visitNumber > 0만)
         List<TravelingVisitEntity> allVisits = travelingVisitRepository
                 .findAllValidVisitsWithSoul();
 
@@ -246,14 +264,12 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), 0);
         }
 
-        // 2. 결과 리스트 생성
         List<Map<String, Object>> results = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
         for (TravelingVisitEntity visit : allVisits) {
             SoulEntity soul = visit.getSoul();
 
-            // 현재 진행중인지 체크
             boolean isActive = !today.isBefore(visit.getStartDate()) &&
                     !today.isAfter(visit.getEndDate());
 
@@ -268,23 +284,20 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             results.add(result);
         }
 
-        // 3. 정렬: 시작일 내림차순 → 이름 오름차순
         results.sort((a, b) -> {
             LocalDate dateA = (LocalDate) a.get("startDate");
             LocalDate dateB = (LocalDate) b.get("startDate");
 
-            int dateCompare = dateB.compareTo(dateA); // 최신순
+            int dateCompare = dateB.compareTo(dateA);
             if (dateCompare != 0) {
                 return dateCompare;
             }
 
-            // 시작일이 같으면 이름 순
             String nameA = ((SoulResponse) a.get("soul")).getName();
             String nameB = ((SoulResponse) b.get("soul")).getName();
             return nameA.compareTo(nameB);
         });
 
-        // 4. 페이징 처리
         int totalElements = results.size();
         int startIndex = page * size;
 
@@ -316,7 +329,6 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
         SoulEntity current = soulRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("영혼을 찾을 수 없습니다. id=" + id));
 
-        // 동일 정렬 기준으로 전체 목록 조회
         List<SoulEntity> all = soulRepository.findAll(
                 Sort.by(Sort.Order.desc("startDate"), Sort.Order.desc("name")));
 
@@ -331,14 +343,12 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             throw new DataNotFoundException("영혼을 찾을 수 없습니다. id=" + id);
         }
 
-        // 이전 최대 2개
         List<SoulResponse> prev = new ArrayList<>();
         for (int i = Math.max(0, idx - 2); i < idx; i++) {
             prev.add(mapper.toResponse(all.get(i)));
         }
         Collections.reverse(prev);
 
-        // 다음 최대 2개
         List<SoulResponse> next = new ArrayList<>();
         for (int i = idx + 1; i <= Math.min(all.size() - 1, idx + 2); i++) {
             next.add(mapper.toResponse(all.get(i)));
@@ -352,14 +362,10 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
 
     /**
      * 가장 오랫동안 안 온 영혼들 조회 (페이징)
-     * - TravelingVisit 기반으로 같은 영혼은 가장 최근 유랑만 표시
-     * - visitNumber > 0인 유랑만 대상 (시즌 당시 제외)
-     * - 마지막 방문일 기준 오래된 순 정렬
      */
     public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
         LocalDate today = LocalDate.now();
 
-        // 1. 모든 유랑 이력 조회 (visitNumber > 0만, Soul과 함께)
         List<TravelingVisitEntity> allVisits = travelingVisitRepository
                 .findAllValidVisitsWithSoul();
 
@@ -367,7 +373,6 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), 0);
         }
 
-        // 2. 영혼 이름별로 그룹화하고 가장 최근 방문만 선택
         Map<String, TravelingVisitEntity> latestVisitPerSoul = new HashMap<>();
 
         for (TravelingVisitEntity visit : allVisits) {
@@ -377,14 +382,12 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
                 latestVisitPerSoul.put(soulName, visit);
             } else {
                 TravelingVisitEntity existing = latestVisitPerSoul.get(soulName);
-                // 더 최근 방문으로 교체
                 if (visit.getEndDate().isAfter(existing.getEndDate())) {
                     latestVisitPerSoul.put(soulName, visit);
                 }
             }
         }
 
-        // 3. 결과 리스트 생성
         List<Map<String, Object>> results = new ArrayList<>();
 
         for (TravelingVisitEntity visit : latestVisitPerSoul.values()) {
@@ -392,7 +395,6 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             LocalDate lastVisitDate = visit.getEndDate();
             long daysSince = ChronoUnit.DAYS.between(lastVisitDate, today);
 
-            // 현재 진행중인지 체크
             boolean isActive = !today.isBefore(visit.getStartDate()) &&
                     !today.isAfter(visit.getEndDate());
 
@@ -406,14 +408,12 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
             results.add(result);
         }
 
-        // 4. daysSince 기준 오름차순 정렬 (오래된 순)
         results.sort((a, b) -> {
             Long daysA = (Long) a.get("daysSinceLastVisit");
             Long daysB = (Long) b.get("daysSinceLastVisit");
             return daysA.compareTo(daysB);
         });
 
-        // 5. 페이징 처리
         int totalElements = results.size();
         int startIndex = page * size;
 
@@ -427,64 +427,6 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
 
         return new PageImpl<>(pagedResults, PageRequest.of(page, size), totalElements);
     }
-    /**
-     * 🎯 TODO: TravelingVisit을 활용한 정확한 오래된 유랑 계산 (미래 구현)
-     * 
-     * 이 메소드는 나중에 TravelingVisit 데이터가 충분히 쌓이면
-     * 위의 getOldestSpirits()를 대체할 예정입니다.
-     */
-    /*
-     * public Page<SoulSummaryResponse> getOldestSpiritsV2(int page, int size) {
-     * List<SoulEntity> allSouls = soulRepository.findAllWithVisits();
-     * LocalDate today = LocalDate.now();
-     * 
-     * Map<String, List<SoulEntity>> groupedByName = allSouls.stream()
-     * .collect(Collectors.groupingBy(SoulEntity::getName));
-     * 
-     * List<SoulSummaryResponse> results = new ArrayList<>();
-     * 
-     * for (Map.Entry<String, List<SoulEntity>> entry : groupedByName.entrySet()) {
-     * List<SoulEntity> souls = entry.getValue();
-     * 
-     * Optional<LocalDate> lastVisitDate = souls.stream()
-     * .flatMap(soul -> soul.getTravelingVisits().stream())
-     * .filter(visit -> visit.getVisitNumber() > 0)
-     * .map(TravelingVisitEntity::getEndDate)
-     * .max(LocalDate::compareTo);
-     * 
-     * if (lastVisitDate.isPresent()) {
-     * long daysSince = ChronoUnit.DAYS.between(lastVisitDate.get(), today);
-     * SoulEntity representative = souls.get(0);
-     * 
-     * SoulSummaryResponse summary = SoulSummaryResponse.builder()
-     * .id(representative.getId())
-     * .name(representative.getName())
-     * .representativeImageUrl(getRepresentativeImageUrl(representative))
-     * .totalVisits(representative.getTotalVisitCount())
-     * .daysSinceLastVisit(daysSince)
-     * .lastVisitDate(lastVisitDate.get())
-     * .isSeasonGuide(representative.isSeasonGuide())
-     * .build();
-     * 
-     * results.add(summary);
-     * }
-     * }
-     * 
-     * results.sort(Comparator.comparing(SoulSummaryResponse::getDaysSinceLastVisit)
-     * .reversed());
-     * 
-     * int start = page * size;
-     * int end = Math.min(start + size, results.size());
-     * 
-     * if (start >= results.size()) {
-     * return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size),
-     * results.size());
-     * }
-     * 
-     * return new PageImpl<>(results.subList(start, end), PageRequest.of(page,
-     * size), results.size());
-     * }
-     */
 
     /**
      * 대표 이미지 URL 추출

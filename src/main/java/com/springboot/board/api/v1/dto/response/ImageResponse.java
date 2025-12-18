@@ -29,9 +29,11 @@ public class ImageResponse {
         if (rawUrl == null || rawUrl.isBlank()) {
             fullUrl = null;
         } else if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+            // 이미 전체 URL인 경우 그대로 사용
             fullUrl = rawUrl;
         } else {
-            fullUrl = "https://korea-sky-planner.com" + rawUrl;
+            // Railway 백엔드 URL 사용 (korea-sky-planner.com이 아님!)
+            fullUrl = "https://korea-sky-planner-backend-production.up.railway.app" + rawUrl;
         }
 
         return ImageResponse.builder()
