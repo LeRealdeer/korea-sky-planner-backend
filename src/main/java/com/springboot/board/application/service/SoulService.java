@@ -180,7 +180,7 @@ public class SoulService {
     }
 
     /**
-     * 모든 유랑 이력 조회 (페이징)
+     * 모든 유랑 이력 조회 (페이징) - ✅ globalOrder 추가
      */
     public Page<Map<String, Object>> getAllTravelingVisits(int page, int size) {
         List<TravelingVisitEntity> allVisits = travelingVisitRepository
@@ -218,6 +218,7 @@ public class SoulService {
             result.put("images", ImageResponse.fromEntities(soul.getImages()));
 
             result.put("visitNumber", visit.getVisitNumber());
+            result.put("globalOrder", visit.getGlobalOrder()); // ✅ 추가!
             result.put("isWarbandVisit", visit.isWarbandVisit());
             result.put("isActive", isActive);
             result.put("__travelingVisitId", visit.getId());
@@ -276,6 +277,7 @@ public class SoulService {
             Map<String, Object> result = new HashMap<>();
             result.put("soul", mapper.toResponse(soul));
             result.put("visitNumber", visit.getVisitNumber());
+            result.put("globalOrder", visit.getGlobalOrder()); // ✅ 추가!
             result.put("startDate", visit.getStartDate());
             result.put("endDate", visit.getEndDate());
             result.put("isWarbandVisit", visit.isWarbandVisit());
@@ -404,6 +406,7 @@ public class SoulService {
             result.put("daysSinceLastVisit", daysSince);
             result.put("isActive", isActive);
             result.put("visitNumber", visit.getVisitNumber());
+            result.put("globalOrder", visit.getGlobalOrder()); // ✅ 추가!
 
             results.add(result);
         }
