@@ -51,15 +51,13 @@ public class ImageService {
         log.info("Starting Cloudinary upload without soul - type: {}, file: {}", imageType, file.getOriginalFilename());
 
         try {
-            // ✅ Cloudinary 업로드
+            // ✅ Cloudinary 업로드 (transformation 제거!)
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), 
                 ObjectUtils.asMap(
-                    "folder", "sky-planner", // Cloudinary 폴더명
+                    "folder", "sky-planner",
                     "resource_type", "image",
-                    "transformation", ObjectUtils.asMap(
-                        "quality", "auto:good", // 자동 품질 최적화
-                        "fetch_format", "auto"  // 자동 포맷 변환 (WebP 등)
-                    )
+                    "quality", "auto:good",
+                    "fetch_format", "auto"
                 )
             );
 
@@ -118,15 +116,13 @@ public class ImageService {
                 .orElseThrow(() -> new DataNotFoundException("영혼을 찾을 수 없습니다. id=" + soulId));
 
         try {
-            // ✅ Cloudinary 업로드
+            // ✅ Cloudinary 업로드 (transformation 제거!)
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), 
                 ObjectUtils.asMap(
                     "folder", "sky-planner",
                     "resource_type", "image",
-                    "transformation", ObjectUtils.asMap(
-                        "quality", "auto:good",
-                        "fetch_format", "auto"
-                    )
+                    "quality", "auto:good",
+                    "fetch_format", "auto"
                 )
             );
 
@@ -182,10 +178,8 @@ public class ImageService {
                 ObjectUtils.asMap(
                     "folder", "sky-planner",
                     "resource_type", "image",
-                    "transformation", ObjectUtils.asMap(
-                        "quality", "auto:good",
-                        "fetch_format", "auto"
-                    )
+                    "quality", "auto:good",
+                    "fetch_format", "auto"
                 )
             );
 
