@@ -18,7 +18,7 @@ public class TravelingVisitWithSoulResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isWarbandVisit;
-    
+    private Integer globalOrder;
     // Soul 정보
     private Long soulId;
     private String soulName;

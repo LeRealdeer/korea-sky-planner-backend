@@ -10,6 +10,7 @@ import java.time.LocalDate;
 public class TravelingVisitUpdateRequest {
 
     private Integer visitNumber;
+    private Integer globalOrder; // 전체 유랑 순서
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isWarbandVisit;

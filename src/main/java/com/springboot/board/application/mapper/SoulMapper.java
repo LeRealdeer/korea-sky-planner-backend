@@ -73,6 +73,7 @@ public interface SoulMapper {
                 return TravelingVisitResponse.builder()
                                 .id(entity.getId())
                                 .visitNumber(entity.getVisitNumber())
+                                .globalOrder(entity.getGlobalOrder())
                                 .startDate(entity.getStartDate())
                                 .endDate(entity.getEndDate())
                                 .isWarbandVisit(entity.isWarbandVisit())

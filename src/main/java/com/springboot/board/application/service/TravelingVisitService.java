@@ -92,6 +92,7 @@ public class TravelingVisitService {
         return TravelingVisitWithSoulResponse.builder()
                 .visitId(visit.getId())
                 .visitNumber(visit.getVisitNumber())
+                .globalOrder(visit.getGlobalOrder())
                 .startDate(visit.getStartDate())
                 .endDate(visit.getEndDate())
                 .isWarbandVisit(visit.isWarbandVisit())
@@ -116,6 +117,7 @@ public class TravelingVisitService {
         TravelingVisitEntity entity = TravelingVisitEntity.builder()
                 .soul(soul)
                 .visitNumber(request.getVisitNumber())
+                .globalOrder(request.getGlobalOrder()) // ✅ 이 줄 추가!
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .isWarbandVisit(request.getIsWarbandVisit())
@@ -153,6 +155,9 @@ public class TravelingVisitService {
         if (request.getVisitNumber() != null) {
             visit.setVisitNumber(request.getVisitNumber());
         }
+        if (request.getGlobalOrder() != null) { // ✅ 이 부분 추가!
+            visit.setGlobalOrder(request.getGlobalOrder());
+        }
         if (request.getStartDate() != null) {
             visit.setStartDate(request.getStartDate());
         }
@@ -166,9 +171,3 @@ public class TravelingVisitService {
         return soulMapper.visitToResponse(visit);
     }
 }
-
-
-
-
-
-

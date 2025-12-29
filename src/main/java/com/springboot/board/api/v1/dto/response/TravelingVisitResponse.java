@@ -10,6 +10,7 @@ import java.time.LocalDate;
 public class TravelingVisitResponse {
     private Long id;
     private Integer visitNumber;
+    private Integer globalOrder;
     private LocalDate startDate;
     private LocalDate endDate;
     private boolean isWarbandVisit;
