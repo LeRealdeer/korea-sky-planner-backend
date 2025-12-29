@@ -23,25 +23,15 @@ public class ImageResponse {
             return null;
         }
 
-        String rawUrl = img.getUrl();
-        String fullUrl;
-
-        if (rawUrl == null || rawUrl.isBlank()) {
-            fullUrl = null;
-        } else if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
-            // 이미 전체 URL인 경우 그대로 사용
-            fullUrl = rawUrl;
-        } else {
-            // Railway 백엔드 URL 사용 (korea-sky-planner.com이 아님!)
-            fullUrl = "https://korea-sky-planner-backend-production.up.railway.app" + rawUrl;
-        }
+        // ✅ Cloudinary URL은 이미 완전한 URL이므로 그대로 사용
+        String url = img.getUrl();
 
         return ImageResponse.builder()
                 .id(img.getId())
                 .soulId(img.getSoul() != null ? img.getSoul().getId() : null)
                 .imageType(img.getImageType())
-                .url(fullUrl)
-                .fileName(img.getFileName())
+                .url(url) // Cloudinary URL 그대로 사용
+                .fileName(img.getFileName()) // public_id
                 .fileSize(img.getFileSize())
                 .uploadedAt(img.getUploadedAt())
                 .build();
