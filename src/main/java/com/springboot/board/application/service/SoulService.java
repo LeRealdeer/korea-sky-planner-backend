@@ -436,6 +436,46 @@ public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
     return new PageImpl<>(pagedResults, PageRequest.of(page, size), totalElements);
 }
 
+// SoulService.java에 추가
+public List<Map<String, Object>> searchTravelingVisits(String query) {
+    LocalDate today = LocalDate.now();
+    
+    // TravelingVisit 엔티티에서 검색
+    List<TravelingVisitEntity> visits = travelingVisitRepository
+        .searchWithSoulAndImages(query, Pageable.unpaged())
+        .getContent();
+    
+    return visits.stream()
+        .map(visit -> {
+            SoulEntity soul = visit.getSoul();
+            boolean isActive = !today.isBefore(visit.getStartDate()) &&
+                    !today.isAfter(visit.getEndDate());
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", soul.getId());
+            result.put("seasonId", soul.getSeason() != null ? soul.getSeason().getId() : null);
+            result.put("seasonName", soul.getSeasonName());
+            result.put("seasonColor", soul.getSeason() != null ? soul.getSeason().getColor() : null);
+            result.put("name", soul.getName());
+            result.put("orderNum", soul.getOrderNum());
+            result.put("startDate", visit.getStartDate());
+            result.put("endDate", visit.getEndDate());
+            result.put("rerunCount", soul.getRerunCount());
+            result.put("keywords", soul.getKeywords());
+            result.put("creator", soul.getCreator());
+            result.put("description", soul.getDescription());
+            result.put("isSeasonGuide", soul.isSeasonGuide());
+            result.put("images", ImageResponse.fromEntities(soul.getImages()));
+            result.put("visitNumber", visit.getVisitNumber());
+            result.put("globalOrder", visit.getGlobalOrder());
+            result.put("isWarbandVisit", visit.isWarbandVisit());
+            result.put("isActive", isActive);
+            
+            return result;
+        })
+        .collect(Collectors.toList());
+}
+
     /**
      * 대표 이미지 URL 추출
      */

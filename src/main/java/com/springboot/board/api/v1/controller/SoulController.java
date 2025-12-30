@@ -24,6 +24,30 @@ public class SoulController {
 
     private final SoulService soulService;
 
+    // ✅ 1. 검색 API 추가 (구체적 경로 먼저!)
+    @Operation(summary = "영혼 검색 (유랑 대백과)")
+    @GetMapping("/search")
+    public ApiResponse<List<Map<String, Object>>> searchTravelingVisits(@RequestParam String query) {
+        return ApiResponse.success(soulService.searchTravelingVisits(query));
+    }
+
+    // ✅ 2. 유랑 대백과용
+    @Operation(summary = "유랑 대백과 - 모든 유랑 이력 조회")
+    @GetMapping("/traveling-visits")
+    public ApiResponse<Page<Map<String, Object>>> getTravelingVisits(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        return ApiResponse.success(soulService.getAllTravelingVisits(page, size));
+    }
+
+    // ✅ 3. 오래된 영혼용
+    @Operation(summary = "오래된 유랑 조회")
+    @GetMapping("/oldest-spirits")
+    public ApiResponse<Page<Map<String, Object>>> getOldestSpirits(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.success(soulService.getOldestSpirits(page, size));
+    }
 
     @Operation(summary = "모든 영혼 조회")
     @GetMapping("/all")
@@ -31,6 +55,18 @@ public class SoulController {
         return ApiResponse.success(soulService.getAllSouls());
     }
 
+    @Operation(summary = "영혼 목록 조회 (페이징, 필터링, 검색)")
+    @GetMapping
+    public ApiResponse<Page<SoulResponse>> getSouls(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String seasonName,
+            @RequestParam(required = false) String query
+    ) {
+        return ApiResponse.success(soulService.getSouls(page, size, seasonName, query));
+    }
+
+    // ✅ 4. Path Variable 사용하는 API들은 맨 마지막!
     @Operation(summary = "시즌별 영혼 조회")
     @GetMapping("/season/{seasonId}")
     public ApiResponse<List<SoulResponse>> getSoulsBySeason(@PathVariable Integer seasonId) {
@@ -43,34 +79,11 @@ public class SoulController {
         return ApiResponse.success(soulService.getSoul(id));
     }
 
-@Operation(summary = "영혼 목록 조회 (페이징, 필터링, 검색)")
-@GetMapping
-public ApiResponse<Page<SoulResponse>> getSouls(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size,
-        @RequestParam(required = false) String seasonName,
-        @RequestParam(required = false) String query
-) {
-    return ApiResponse.success(soulService.getSouls(page, size, seasonName, query));
-}
-
-// ✅ 새로 추가 (유랑 대백과용)
-@Operation(summary = "유랑 대백과 - 모든 유랑 이력 조회")
-@GetMapping("/traveling-visits")
-public ApiResponse<Page<Map<String, Object>>> getTravelingVisits(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "15") int size) {
-    return ApiResponse.success(soulService.getAllTravelingVisits(page, size));
-}
-
-// ✅ 기존 유지 (오래된 영혼용)
-@Operation(summary = "오래된 유랑 조회")
-@GetMapping("/oldest-spirits")
-public ApiResponse<Page<Map<String, Object>>> getOldestSpirits(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size) {
-    return ApiResponse.success(soulService.getOldestSpirits(page, size));
-}
+    @Operation(summary = "이웃 영혼 조회")
+    @GetMapping("/{id}/neighbors")
+    public ApiResponse<Map<String, List<SoulResponse>>> getNeighbors(@PathVariable Integer id) {
+        return ApiResponse.success(soulService.getNeighbors(id));
+    }
 
     @Operation(summary = "영혼 생성")
     @PostMapping
@@ -93,12 +106,4 @@ public ApiResponse<Page<Map<String, Object>>> getOldestSpirits(
     public void deleteSoul(@PathVariable Integer id) {
         soulService.deleteSoul(id);
     }
-
-    @Operation(summary = "이웃 영혼 조회")
-    @GetMapping("/{id}/neighbors")
-    public ApiResponse<Map<String, List<SoulResponse>>> getNeighbors(@PathVariable Integer id) {
-        return ApiResponse.success(soulService.getNeighbors(id));
-    }
-
-
 }
