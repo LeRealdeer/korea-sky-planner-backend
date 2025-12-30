@@ -14,6 +14,7 @@ import java.util.List;
 @Setter
 public class SoulUpdateRequest {
 
+    private Integer seasonId;
     /** 시즌명 */
     private String seasonName;
 

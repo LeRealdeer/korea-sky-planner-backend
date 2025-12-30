@@ -57,7 +57,12 @@ public class SoulService {
     public SoulResponse updateSoul(Integer id, SoulUpdateRequest req) {
         SoulEntity entity = soulRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("영혼을 찾을 수 없습니다. id=" + id));
-
+    // ✅ seasonId가 있으면 Season 업데이트
+    if (req.getSeasonId() != null && !req.getSeasonId().equals(entity.getSeason().getId())) {
+        SeasonEntity season = seasonRepository.findById(req.getSeasonId())
+                .orElseThrow(() -> new DataNotFoundException("시즌을 찾을 수 없습니다. id=" + req.getSeasonId()));
+        entity.setSeason(season);
+    }
         // MapStruct 대신 수동으로 필드 업데이트
         if (req.getName() != null && !req.getName().isBlank()) {
             entity.setName(req.getName());
