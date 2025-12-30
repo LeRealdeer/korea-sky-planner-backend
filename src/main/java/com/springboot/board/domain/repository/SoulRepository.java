@@ -21,7 +21,7 @@ public interface SoulRepository extends JpaRepository<SoulEntity, Integer> {
             "WHERE s.name LIKE %:query% " +
             "OR s.seasonName LIKE %:query% " +
             "OR k LIKE %:query% " +
-            "ORDER BY s.startDate DESC, s.name DESC")
+            "ORDER BY s.season.startDate DESC, s.orderNum ASC")
     List<SoulEntity> searchSouls(@Param("query") String query);
 
     // ========== 상세 조회 ==========
@@ -36,29 +36,26 @@ public interface SoulRepository extends JpaRepository<SoulEntity, Integer> {
     // ========== 시즌별 조회 ==========
     List<SoulEntity> findBySeasonId(Integer seasonId);
     
-    // 시즌 이름으로 필터링 (페이징)
+    // ✅ 시즌 이름으로 필터링 (페이징) - 정렬 수정
     @Query("SELECT s FROM SoulEntity s " +
            "LEFT JOIN FETCH s.season season " +
-           "LEFT JOIN FETCH s.images " +
            "WHERE season.name = :seasonName " +
            "ORDER BY s.orderNum ASC")
     Page<SoulEntity> findBySeasonName(@Param("seasonName") String seasonName, Pageable pageable);
 
-    // ========== 검색 쿼리 (페이징) ==========
+    // ========== 검색 쿼리 (페이징) - 정렬 수정 ==========
     @Query("SELECT DISTINCT s FROM SoulEntity s " +
            "LEFT JOIN FETCH s.season " +
-           "LEFT JOIN FETCH s.images " +
            "LEFT JOIN s.keywords k " +
            "WHERE s.name LIKE %:query% " +
            "OR s.seasonName LIKE %:query% " +
            "OR k LIKE %:query% " +
-           "ORDER BY s.orderNum ASC")
+           "ORDER BY s.season.startDate DESC, s.orderNum ASC")
     Page<SoulEntity> findByNameOrKeywordsContaining(@Param("query") String query, Pageable pageable);
 
-    // ========== 시즌 + 검색 (페이징) ==========
+    // ========== 시즌 + 검색 (페이징) - 정렬 수정 ==========
     @Query("SELECT DISTINCT s FROM SoulEntity s " +
            "LEFT JOIN FETCH s.season season " +
-           "LEFT JOIN FETCH s.images " +
            "LEFT JOIN s.keywords k " +
            "WHERE season.name = :seasonName " +
            "AND (s.name LIKE %:query% OR s.seasonName LIKE %:query% OR k LIKE %:query%) " +
@@ -86,10 +83,9 @@ public interface SoulRepository extends JpaRepository<SoulEntity, Integer> {
            "(SELECT 1 FROM TravelingVisitEntity tv WHERE tv.soul = s)")
     List<SoulEntity> findAllWithTravelingVisits();
 
-    // ========== 페이징 처리된 전체 조회 (이미지 포함) ==========
-    @Query("SELECT DISTINCT s FROM SoulEntity s " +
-           "LEFT JOIN FETCH s.season " +
-           "LEFT JOIN FETCH s.images " +
-           "ORDER BY s.orderNum ASC")
-    Page<SoulEntity> findAllWithImages(Pageable pageable);
+    // ✅ 페이징 처리된 전체 조회 - 정렬 수정 (가장 중요!)
+    @Query("SELECT s FROM SoulEntity s " +
+           "LEFT JOIN FETCH s.season season " +
+           "ORDER BY season.startDate DESC, s.orderNum ASC")
+    Page<SoulEntity> findAllWithSeason(Pageable pageable);
 }

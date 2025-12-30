@@ -124,30 +124,29 @@ public class SoulService {
         return mapper.toResponse(soul);
     }
 
-    public Page<SoulResponse> getSouls(int page, int size, String seasonName, String query) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("orderNum").ascending());
-        Page<SoulEntity> soulPage;
+public Page<SoulResponse> getSouls(int page, int size, String seasonName, String query) {
+    Pageable pageable = PageRequest.of(page, size, Sort.by("orderNum").ascending());
+    Page<SoulEntity> soulPage;
 
-        // 시즌 + 검색 둘 다 있는 경우
-        if (seasonName != null && !seasonName.isEmpty() && query != null && !query.isEmpty()) {
-            soulPage = soulRepository.findBySeasonNameAndQuery(seasonName, query, pageable);
-        }
-        // 시즌만 있는 경우
-        else if (seasonName != null && !seasonName.isEmpty()) {
-            soulPage = soulRepository.findBySeasonName(seasonName, pageable);
-        }
-        // 검색만 있는 경우
-        else if (query != null && !query.isEmpty()) {
-            soulPage = soulRepository.findByNameOrKeywordsContaining(query, pageable);
-        }
-        // 둘 다 없는 경우 (전체)
-        else {
-            soulPage = soulRepository.findAll(pageable);
-        }
-
-        return soulPage.map(mapper::toResponse);
+    // 시즌 + 검색 둘 다 있는 경우
+    if (seasonName != null && !seasonName.isEmpty() && query != null && !query.isEmpty()) {
+        soulPage = soulRepository.findBySeasonNameAndQuery(seasonName, query, pageable);
+    }
+    // 시즌만 있는 경우
+    else if (seasonName != null && !seasonName.isEmpty()) {
+        soulPage = soulRepository.findBySeasonName(seasonName, pageable);
+    }
+    // 검색만 있는 경우
+    else if (query != null && !query.isEmpty()) {
+        soulPage = soulRepository.findByNameOrKeywordsContaining(query, pageable);
+    }
+    // ✅ 둘 다 없는 경우 (전체) - 수정!
+    else {
+        soulPage = soulRepository.findAllWithSeason(pageable);
     }
 
+    return soulPage.map(mapper::toResponse);
+}
     /**
      * 모든 영혼 조회 (내림차순)
      */
