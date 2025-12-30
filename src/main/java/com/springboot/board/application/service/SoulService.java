@@ -369,71 +369,72 @@ public Page<SoulResponse> getSouls(int page, int size, String seasonName, String
     /**
      * 가장 오랫동안 안 온 영혼들 조회 (페이징)
      */
-    public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
-        LocalDate today = LocalDate.now();
+public Page<Map<String, Object>> getOldestSpirits(int page, int size) {
+    LocalDate today = LocalDate.now();
 
-        List<TravelingVisitEntity> allVisits = travelingVisitRepository
-                .findAllValidVisitsWithSoul();
+    List<TravelingVisitEntity> allVisits = travelingVisitRepository
+            .findAllValidVisitsWithSoul();
 
-        if (allVisits.isEmpty()) {
-            return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), 0);
-        }
+    if (allVisits.isEmpty()) {
+        return new PageImpl<>(Collections.emptyList(), PageRequest.of(page, size), 0);
+    }
 
-        Map<String, TravelingVisitEntity> latestVisitPerSoul = new HashMap<>();
+    Map<String, TravelingVisitEntity> latestVisitPerSoul = new HashMap<>();
 
-        for (TravelingVisitEntity visit : allVisits) {
-            String soulName = visit.getSoul().getName();
+    for (TravelingVisitEntity visit : allVisits) {
+        String soulName = visit.getSoul().getName();
 
-            if (!latestVisitPerSoul.containsKey(soulName)) {
+        if (!latestVisitPerSoul.containsKey(soulName)) {
+            latestVisitPerSoul.put(soulName, visit);
+        } else {
+            TravelingVisitEntity existing = latestVisitPerSoul.get(soulName);
+            if (visit.getEndDate().isAfter(existing.getEndDate())) {
                 latestVisitPerSoul.put(soulName, visit);
-            } else {
-                TravelingVisitEntity existing = latestVisitPerSoul.get(soulName);
-                if (visit.getEndDate().isAfter(existing.getEndDate())) {
-                    latestVisitPerSoul.put(soulName, visit);
-                }
             }
         }
-
-        List<Map<String, Object>> results = new ArrayList<>();
-
-        for (TravelingVisitEntity visit : latestVisitPerSoul.values()) {
-            SoulEntity soul = visit.getSoul();
-            LocalDate lastVisitDate = visit.getEndDate();
-            long daysSince = ChronoUnit.DAYS.between(lastVisitDate, today);
-
-            boolean isActive = !today.isBefore(visit.getStartDate()) &&
-                    !today.isAfter(visit.getEndDate());
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("soul", mapper.toResponse(soul));
-            result.put("lastVisitDate", lastVisitDate);
-            result.put("daysSinceLastVisit", daysSince);
-            result.put("isActive", isActive);
-            result.put("visitNumber", visit.getVisitNumber());
-            result.put("globalOrder", visit.getGlobalOrder()); // ✅ 추가!
-
-            results.add(result);
-        }
-
-        results.sort((a, b) -> {
-            Long daysA = (Long) a.get("daysSinceLastVisit");
-            Long daysB = (Long) b.get("daysSinceLastVisit");
-            return daysA.compareTo(daysB);
-        });
-
-        int totalElements = results.size();
-        int startIndex = page * size;
-
-        if (startIndex >= totalElements) {
-            return new PageImpl<>(Collections.emptyList(),
-                    PageRequest.of(page, size), totalElements);
-        }
-
-        int endIndex = Math.min(startIndex + size, totalElements);
-        List<Map<String, Object>> pagedResults = results.subList(startIndex, endIndex);
-
-        return new PageImpl<>(pagedResults, PageRequest.of(page, size), totalElements);
     }
+
+    List<Map<String, Object>> results = new ArrayList<>();
+
+    for (TravelingVisitEntity visit : latestVisitPerSoul.values()) {
+        SoulEntity soul = visit.getSoul();
+        LocalDate lastVisitDate = visit.getEndDate();
+        long daysSince = ChronoUnit.DAYS.between(lastVisitDate, today);
+
+        boolean isActive = !today.isBefore(visit.getStartDate()) &&
+                !today.isAfter(visit.getEndDate());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("soul", mapper.toResponse(soul));
+        result.put("lastVisitDate", lastVisitDate);
+        result.put("daysSinceLastVisit", daysSince);
+        result.put("isActive", isActive);
+        result.put("visitNumber", visit.getVisitNumber());
+        result.put("globalOrder", visit.getGlobalOrder());
+
+        results.add(result);
+    }
+
+    // ✅ 이 부분을 수정! (오름차순 → 내림차순)
+    results.sort((a, b) -> {
+        Long daysA = (Long) a.get("daysSinceLastVisit");
+        Long daysB = (Long) b.get("daysSinceLastVisit");
+        return daysB.compareTo(daysA); // ✅ 이 줄 수정! (a, b 순서 바꿈)
+    });
+
+    int totalElements = results.size();
+    int startIndex = page * size;
+
+    if (startIndex >= totalElements) {
+        return new PageImpl<>(Collections.emptyList(),
+                PageRequest.of(page, size), totalElements);
+    }
+
+    int endIndex = Math.min(startIndex + size, totalElements);
+    List<Map<String, Object>> pagedResults = results.subList(startIndex, endIndex);
+
+    return new PageImpl<>(pagedResults, PageRequest.of(page, size), totalElements);
+}
 
     /**
      * 대표 이미지 URL 추출
