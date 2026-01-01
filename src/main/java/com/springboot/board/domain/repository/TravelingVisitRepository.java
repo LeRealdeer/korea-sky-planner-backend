@@ -26,7 +26,7 @@ public interface TravelingVisitRepository extends JpaRepository<TravelingVisitEn
        "LEFT JOIN FETCH v.soul s " +
        "LEFT JOIN FETCH s.images " +
        "LEFT JOIN FETCH s.season " +
-       "WHERE v.visitNumber > 0 " +
+       "WHERE v.visitNumber IS NOT NULL " +
        "ORDER BY v.endDate DESC")
 List<TravelingVisitEntity> findAllValidVisitsWithSoul();
     /**
@@ -40,7 +40,7 @@ List<TravelingVisitEntity> findAllValidVisitsWithSoul();
     @Query("SELECT DISTINCT v FROM TravelingVisitEntity v " +
            "LEFT JOIN FETCH v.soul s " +
            "LEFT JOIN FETCH s.images " +
-           "WHERE v.visitNumber > 0")
+           "WHERE v.visitNumber IS NOT NULL")
     Page<TravelingVisitEntity> findAllWithSoulAndImages(Pageable pageable);
     
     // 특정 영혼의 특정 방문 번호 조회 (중복 체크용)
@@ -57,7 +57,7 @@ List<TravelingVisitEntity> findAllValidVisitsWithSoul();
            "LEFT JOIN FETCH v.soul s " +
            "LEFT JOIN FETCH s.images " +
            "LEFT JOIN s.keywords k " +
-           "WHERE v.visitNumber > 0 AND (" +
+           "WHERE v.visitNumber IS NOT NULL AND (" +
            "LOWER(s.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(s.seasonName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(k) LIKE LOWER(CONCAT('%', :query, '%')))")
