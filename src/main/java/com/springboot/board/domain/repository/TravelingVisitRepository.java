@@ -60,6 +60,7 @@ List<TravelingVisitEntity> findAllValidVisitsWithSoul();
            "WHERE v.visitNumber IS NOT NULL AND (" +
            "LOWER(s.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(s.seasonName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           "LOWER(k) LIKE LOWER(CONCAT('%', :query, '%')))")
+           "LOWER(k) LIKE LOWER(CONCAT('%', :query, '%')))"+
+           "ORDER BY v.startDate DESC, v.visitNumber DESC")
     Page<TravelingVisitEntity> searchWithSoulAndImages(@Param("query") String query, Pageable pageable);
 }
